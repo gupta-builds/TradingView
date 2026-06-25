@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "research-data"
+version = "0.1.0"
+description = "Provider-agnostic market data ingestion and quality auditing for research"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0",
+    "duckdb>=0.9",
+    "typer>=0.9",
+    "tomli>=2.0;python_version<'3.11'",
+    "hypothesis>=6.0",
+    "pytest>=7.0",
+    "exchange_calendars>=4.5",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

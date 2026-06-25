@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environment
+.venv/
+venv/
+
+# Test / property-testing caches
+.pytest_cache/
+.hypothesis/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Local research data (raw payloads, DuckDB files) - regenerated locally, never committed
+data/
+
+# Claude Code personal/local settings (project-shared config lives in .claude/settings.json)
+.claude/settings.local.json
+
+# graphify knowledge-graph output (regenerated locally, copied into Jarvis manually)
+graphify-out/
+
+# Windows NTFS zone-identifier artifacts picked up via WSL mounts
+*Zone.Identifier*
+
+# OS
+.DS_Store

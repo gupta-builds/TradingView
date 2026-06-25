@@ -1,0 +1,96 @@
+# V1 Universe - Initial set of symbols for research data ingestion
+# These are major US equity ETFs and large-cap stocks
+
+[universe]
+name = "v1"
+description = "Initial research universe: broad ETFs and mega-cap equities"
+symbols = ["VOO", "VTI", "SPY", "QQQ", "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META"]
+
+[benchmarks]
+default = "VOO"
+
+[benchmarks.mappings]
+VOO = "S&P 500 ETF (Vanguard)"
+VTI = "Total Stock Market ETF (Vanguard)"
+SPY = "S&P 500 ETF (SPDR)"
+QQQ = "Nasdaq-100 ETF (Invesco)"
+
+[assets.VOO]
+symbol = "VOO"
+asset_type = "etf"
+name = "Vanguard S&P 500 ETF"
+exchange = "NYSE"
+currency = "USD"
+benchmark_symbol = "VOO"
+
+[assets.VTI]
+symbol = "VTI"
+asset_type = "etf"
+name = "Vanguard Total Stock Market ETF"
+exchange = "NYSE"
+currency = "USD"
+benchmark_symbol = "VOO"
+
+[assets.SPY]
+symbol = "SPY"
+asset_type = "etf"
+name = "SPDR S&P 500 ETF Trust"
+exchange = "NYSE"
+currency = "USD"
+benchmark_symbol = "VOO"
+
+[assets.QQQ]
+symbol = "QQQ"
+asset_type = "etf"
+name = "Invesco QQQ Trust"
+exchange = "NASDAQ"
+currency = "USD"
+benchmark_symbol = "VOO"
+
+[assets.AAPL]
+symbol = "AAPL"
+asset_type = "equity"
+name = "Apple Inc."
+exchange = "NASDAQ"
+currency = "USD"
+benchmark_symbol = "VOO"
+
+[assets.MSFT]
+symbol = "MSFT"
+asset_type = "equity"
+name = "Microsoft Corporation"
+exchange = "NASDAQ"
+currency = "USD"
+benchmark_symbol = "VOO"
+
+[assets.NVDA]
+symbol = "NVDA"
+asset_type = "equity"
+name = "NVIDIA Corporation"
+exchange = "NASDAQ"
+currency = "USD"
+benchmark_symbol = "VOO"
+
+[assets.AMZN]
+symbol = "AMZN"
+asset_type = "equity"
+name = "Amazon.com Inc."
+exchange = "NASDAQ"
+currency = "USD"
+benchmark_symbol = "VOO"
+
+[assets.GOOGL]
+symbol = "GOOGL"
+asset_type = "equity"
+name = "Alphabet Inc. Class A"
+exchange = "NASDAQ"
+currency = "USD"
+benchmark_symbol = "VOO"
+
+[assets.META]
+symbol = "META"
+asset_type = "equity"
+name = "Meta Platforms Inc."
+exchange = "NASDAQ"
+currency = "USD"
+benchmark_symbol = "VOO"

@@ -1,0 +1,75 @@
+# Provider configuration for research data ingestion
+# Each provider must include: source_name, source_url, license_note,
+# requires_api_key, rate_limit, adjustment_policy
+
+[default]
+provider = "polygon"
+
+[providers.polygon]
+source_name = "polygon"
+source_url = "https://api.polygon.io"
+license_note = "Polygon Basic plan - free tier with end-of-day data, 2 years history, 5 calls/minute"
+requires_api_key = true
+rate_limit = 5
+adjustment_policy = "split_dividend_adjusted"
+api_key_env_var = "POLYGON_API_KEY"
+supports_daily_ohlcv = true
+supports_adjusted_prices = true
+supports_corporate_actions = true
+min_history_years_free = 2.0
+experimental = false
+
+[providers.csv_fixture]
+source_name = "csv_fixture"
+source_url = "file://tests/fixtures/"
+license_note = "Local test fixtures - no external data license required"
+requires_api_key = false
+rate_limit = 0
+adjustment_policy = "split_dividend_adjusted"
+supports_daily_ohlcv = true
+supports_adjusted_prices = true
+supports_corporate_actions = false
+min_history_years_free = 0.5
+experimental = false
+
+[providers.tiingo]
+source_name = "tiingo"
+source_url = "https://api.tiingo.com"
+license_note = "Tiingo EOD - verify current terms before production use"
+requires_api_key = true
+rate_limit = 50
+adjustment_policy = "split_dividend_adjusted"
+api_key_env_var = "TIINGO_API_KEY"
+supports_daily_ohlcv = true
+supports_adjusted_prices = true
+supports_corporate_actions = false
+min_history_years_free = 5.0
+experimental = false
+
+[providers.alpha_vantage]
+source_name = "alpha_vantage"
+source_url = "https://www.alphavantage.co"
+license_note = "Alpha Vantage - free tier with daily compact limits"
+requires_api_key = true
+rate_limit = 5
+adjustment_policy = "split_adjusted"
+api_key_env_var = "ALPHA_VANTAGE_API_KEY"
+supports_daily_ohlcv = true
+supports_adjusted_prices = true
+supports_corporate_actions = false
+min_history_years_free = 20.0
+experimental = false
+
+[providers.fmp]
+source_name = "fmp"
+source_url = "https://financialmodelingprep.com/api"
+license_note = "FMP - verify current plan limits before production use"
+requires_api_key = true
+rate_limit = 10
+adjustment_policy = "split_dividend_adjusted"
+api_key_env_var = "FMP_API_KEY"
+supports_daily_ohlcv = true
+supports_adjusted_prices = true
+supports_corporate_actions = true
+min_history_years_free = 5.0
+experimental = false
