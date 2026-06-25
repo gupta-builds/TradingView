@@ -81,3 +81,28 @@ AI agents must cite timestamped evidence from `DataEvidencePacket`; they must no
 ### Testing
 
 Tests use `pytest` + `hypothesis` (property-based). Property-based test files are prefixed `test_property_`. The `tests/fixtures/` directory has CSV files for VOO, SPY, MSFT used by `csv_fixture` provider tests.
+
+## Non-Negotiable Guardrails
+
+These rules come from `.kiro/specs/data-ingestion-foundation/design.md` ("Guardrails to Preserve", "Non-Goals") and apply to every phase of this project, not just ingestion:
+
+- No execution language anywhere in code, CLI output, or docs (`BUY`, `SELL`, "guaranteed", "risk-free"). Action fields use only `WATCH | HOLD | ACCUMULATE | REDUCE | AVOID | INSUFFICIENT_DATA`.
+- No data fabrication. Missing or empty provider responses must surface as `MISSING`/`INSUFFICIENT_DATA`, never as a synthesized value.
+- Confidence is always capped by data quality (see `quality.py` precedence: MISSING > CONTRADICTORY > STALE > INSUFFICIENT_DATA > PARTIAL > USABLE).
+- No LLM/AI API calls inside the ingestion path (`models.py`, `config.py`, `storage.py`, `normalization.py`, `calendar.py`, `quality.py`, `read_api.py`). AI only ever consumes a `DataEvidencePacket` downstream.
+- No secrets in source, fixtures, logs, or stored metadata; `.env` stays out of git.
+- No broker/order-routing SDKs, and no intraday, tick, options, futures, crypto, margin, or leverage code paths in this phase.
+- Every later backtest must preserve time order, include costs/drawdown/trade count, and compare against the ETF baseline (`VOO`).
+
+Use the `guardrail-auditor` agent or `/guardrail-check` skill to verify these before merging.
+
+## Roadmap
+
+Current phase: **Month 1 — Data Ingestion Foundation** (this repo). Planned phases after this spec is complete: deterministic strategy/backtest engine (trend following, mean reversion, quality, valuation sanity, risk) → evidence-card schema + AI analyst/critic → paper-trading journal → Streamlit dashboard. Each phase is gated by the guardrails above; strategy and AI work should not start until the ingestion foundation's checkpoints in `tasks.md` pass.
+
+## Claude Code tooling (`.claude/`)
+
+- `agents/guardrail-auditor.md` — reviews a diff/PR against the guardrails above.
+- `agents/spec-implementer.md` — implements the next open `tasks.md` item per `design.md`, and flags drift between `tasks.md` checkboxes and actual code.
+- `skills/kiro-status` — reconciles `tasks.md` against what's actually implemented and tested.
+- `skills/guardrail-check` — grep-based sweep for guardrail violations (operationalizes spec task 13).
