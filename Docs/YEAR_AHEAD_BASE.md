@@ -79,13 +79,18 @@ src/research_data/
     walk_forward.py    #   gate 3: rolling windows, fraction-positive + pooled OOS Sharpe
     deflated_sharpe.py #   gate 4: Bailey/López de Prado DSR with trial count from brain test records
     harness.py         #   runs gates in order, writes TestRunRecords, sets demo-paper eligibility
+  strategies/          # production strategy packs (spec hook_refs live here, not in tests/)
+    quality_momentum.py#   50/50 momentum 12-1 + quality_fcf composite tilt, top-K equal weight
+                       #   (Docs/PHASE2_STRATEGY_PACK.md; hook: quality_momentum_tilt_hook)
   paper/               # paper-test contracts (UI thin; storage/APIs real)
     models.py          #   Thesis (pre-approval required), PaperFill (open|close — no BUY/SELL words),
                        #   JournalEntry (voo_return_same_period required on close), ReplayRun
     store.py           #   PaperStore: DuckDB persistence
     engine.py          #   timed auto-entry inside approved windows; replay writes journal as-if-time-passed
+scripts/
+  run_quality_momentum_study.py  # manual live study: real DuckDB → hook → gates → brain + paper artifacts
 tests/                 # offline by default; property tests prefixed test_property_
-  synthetic.py         # seeded synthetic OHLCV generator (long series for factor/gate/paper tests)
+  synthetic.py         # seeded synthetic OHLCV + fundamentals generators (long series for factor/gate/paper tests)
   fixtures/            # short CSVs (ingestion tests) + fundamentals/ (FMP + SEC statement fixtures)
 config/
   assets.toml          # 14-symbol universe: VOO VTI SPY QQQ AAPL MSFT NVDA AMZN GOOGL META BRKB JPM COST TSLA

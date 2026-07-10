@@ -43,6 +43,23 @@ Short lessons only: corrections + confirmed approaches. Read at each work block.
 - When Bash/Edit throttle ("classifier unavailable"): wait and retry; read-only tools keep working — do not
   switch architectures or improvise alternate write paths.
 
+## Strategy-pack slice (2026-07-11)
+
+- `tests/test_models.py::test_today_trading_date_accepted` flakes for ~4h after local midnight on this
+  UTC+4 machine: the validator's clock is UTC, the test used local `date.today()`. Fixed the test to use
+  UTC today — date-boundary tests must use the same clock as the code under test.
+- `BrainStore.record_test_run` refuses unapproved specs — gate tests must `approve_spec(..., "anant")`
+  before `run_and_record`, even for throwaway specs.
+- Live free-tier depth is **274 sessions** (2025-06 → 2026-07), not "400 trading days": momentum warm-up
+  (253) leaves ~21 strategy sessions, so even the OOS gate fails closed on live data (needs 60+60).
+  Walk-forward needs ≥ 1,010 sessions (~4 years). Offline synthetic proves capability; live records
+  honest failures until history deepens.
+- Fundamentals in the live DB: SEC 12 quarters vs FMP 4 for every equity — pick ONE source per symbol
+  (most snapshots wins) before `to_factor_inputs`, or duplicated quarters distort margin-stability stdev.
+- Confirmed: point-in-time fundamentals gating (fiscal_period_end + 90d lag ≤ rebalance date) plus
+  "decide at close i, earn from i+1" makes prefix-invariance provable in a test — truncating the future
+  must leave past returns/decisions bit-identical.
+
 ## Post-main shakeout (2026-07-11)
 
 - `main` commit `69b1d0c` verified on `origin/main`; `.env` gitignored with keys set.

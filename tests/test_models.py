@@ -241,7 +241,9 @@ class TestValidationFutureDates:
             OHLCVRecord(**_valid_record_kwargs(data_as_of=future))
 
     def test_today_trading_date_accepted(self):
-        today = date.today()
+        # The validator's clock is UTC; local date.today() reads as "future"
+        # for a few hours after local midnight on UTC+ machines.
+        today = datetime.now(timezone.utc).date()
         record = OHLCVRecord(**_valid_record_kwargs(
             trading_date=today, data_as_of=today
         ))
