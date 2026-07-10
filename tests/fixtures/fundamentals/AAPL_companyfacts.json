@@ -1,0 +1,75 @@
+{
+  "cik": 320193,
+  "entityName": "Apple Inc.",
+  "facts": {
+    "dei": {
+      "EntityCommonStockSharesOutstanding": {
+        "units": {
+          "shares": [
+            {"end": "2026-03-28", "val": 15000000000, "form": "10-Q", "fp": "Q2", "fy": 2026},
+            {"end": "2025-09-27", "val": 15200000000, "form": "10-K", "fp": "FY", "fy": 2025}
+          ]
+        }
+      }
+    },
+    "us-gaap": {
+      "RevenueFromContractWithCustomerExcludingAssessedTax": {
+        "units": {
+          "USD": [
+            {"start": "2025-12-28", "end": "2026-03-28", "val": 95000000000, "form": "10-Q", "fp": "Q2", "fy": 2026},
+            {"start": "2024-09-29", "end": "2025-09-27", "val": 391000000000, "form": "10-K", "fp": "FY", "fy": 2025},
+            {"start": "2023-10-01", "end": "2024-09-28", "val": 383000000000, "form": "8-K", "fp": "FY", "fy": 2024}
+          ]
+        }
+      },
+      "OperatingIncomeLoss": {
+        "units": {
+          "USD": [
+            {"start": "2025-12-28", "end": "2026-03-28", "val": 29500000000, "form": "10-Q", "fp": "Q2", "fy": 2026},
+            {"start": "2024-09-29", "end": "2025-09-27", "val": 123000000000, "form": "10-K", "fp": "FY", "fy": 2025}
+          ]
+        }
+      },
+      "NetCashProvidedByUsedInOperatingActivities": {
+        "units": {
+          "USD": [
+            {"start": "2025-12-28", "end": "2026-03-28", "val": 28000000000, "form": "10-Q", "fp": "Q2", "fy": 2026},
+            {"start": "2024-09-29", "end": "2025-09-27", "val": 118000000000, "form": "10-K", "fp": "FY", "fy": 2025}
+          ]
+        }
+      },
+      "PaymentsToAcquirePropertyPlantAndEquipment": {
+        "units": {
+          "USD": [
+            {"start": "2025-12-28", "end": "2026-03-28", "val": 2900000000, "form": "10-Q", "fp": "Q2", "fy": 2026},
+            {"start": "2024-09-29", "end": "2025-09-27", "val": 11000000000, "form": "10-K", "fp": "FY", "fy": 2025}
+          ]
+        }
+      },
+      "LongTermDebt": {
+        "units": {
+          "USD": [
+            {"end": "2026-03-28", "val": 98000000000, "form": "10-Q", "fp": "Q2", "fy": 2026},
+            {"end": "2025-09-27", "val": 96000000000, "form": "10-K", "fp": "FY", "fy": 2025}
+          ]
+        }
+      },
+      "CashAndCashEquivalentsAtCarryingValue": {
+        "units": {
+          "USD": [
+            {"end": "2026-03-28", "val": 32000000000, "form": "10-Q", "fp": "Q2", "fy": 2026},
+            {"end": "2025-09-27", "val": 29000000000, "form": "10-K", "fp": "FY", "fy": 2025}
+          ]
+        }
+      },
+      "StockholdersEquity": {
+        "units": {
+          "USD": [
+            {"end": "2026-03-28", "val": 67000000000, "form": "10-Q", "fp": "Q2", "fy": 2026},
+            {"end": "2025-09-27", "val": 65000000000, "form": "10-K", "fp": "FY", "fy": 2025}
+          ]
+        }
+      }
+    }
+  }
+}

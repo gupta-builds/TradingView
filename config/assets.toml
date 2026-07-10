@@ -4,7 +4,7 @@
 [universe]
 name = "v1"
 description = "Initial research universe: broad ETFs and mega-cap equities"
-symbols = ["VOO", "VTI", "SPY", "QQQ", "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META"]
+symbols = ["VOO", "VTI", "SPY", "QQQ", "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "BRKB", "JPM", "COST", "TSLA"]
 
 [benchmarks]
 default = "VOO"
@@ -91,6 +91,40 @@ benchmark_symbol = "VOO"
 symbol = "META"
 asset_type = "equity"
 name = "Meta Platforms Inc."
+exchange = "NASDAQ"
+currency = "USD"
+benchmark_symbol = "VOO"
+
+[assets.BRKB]
+# Canonical symbol is letters-only (BRKB); provider clients map to their own
+# punctuation (Polygon "BRK.B", SEC "BRK-B").
+symbol = "BRKB"
+asset_type = "equity"
+name = "Berkshire Hathaway Inc. Class B (BRK.B)"
+exchange = "NYSE"
+currency = "USD"
+benchmark_symbol = "VOO"
+
+[assets.JPM]
+symbol = "JPM"
+asset_type = "equity"
+name = "JPMorgan Chase & Co."
+exchange = "NYSE"
+currency = "USD"
+benchmark_symbol = "VOO"
+
+[assets.COST]
+symbol = "COST"
+asset_type = "equity"
+name = "Costco Wholesale Corporation"
+exchange = "NASDAQ"
+currency = "USD"
+benchmark_symbol = "VOO"
+
+[assets.TSLA]
+symbol = "TSLA"
+asset_type = "equity"
+name = "Tesla, Inc."
 exchange = "NASDAQ"
 currency = "USD"
 benchmark_symbol = "VOO"

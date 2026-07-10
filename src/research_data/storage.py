@@ -20,7 +20,7 @@ from typing import Any
 import duckdb
 
 from research_data.config import AppConfig
-from research_data.models import OHLCVRecord, ProviderFetchResult
+from research_data.models import DataQualityReport, OHLCVRecord, ProviderFetchResult
 
 
 # ---------------------------------------------------------------------------
@@ -557,3 +557,90 @@ def _detect_payload_format(payload: str) -> str:
     if stripped.startswith("{") or stripped.startswith("["):
         return "json"
     return "csv"
+
+
+# ---------------------------------------------------------------------------
+# Quality Report Persistence
+# ---------------------------------------------------------------------------
+
+
+def store_quality_report(
+    conn: duckdb.DuckDBPyConnection, report: DataQualityReport
+) -> None:
+    """Persist a DataQualityReport to the data_quality_reports table.
+
+    Args:
+        conn: DuckDB connection.
+        report: Validated DataQualityReport instance.
+    """
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO data_quality_reports (
+            report_id, run_id, symbol, source_name, generated_at,
+            requested_start_date, requested_end_date,
+            first_available_date, last_available_date,
+            expected_sessions, valid_sessions, missing_sessions,
+            rejected_records, quality_status, confidence_cap, issues_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            report.report_id,
+            report.run_id,
+            report.symbol,
+            report.source_name,
+            report.generated_at,
+            report.requested_start_date,
+            report.requested_end_date,
+            report.first_available_date,
+            report.last_available_date,
+            report.expected_sessions,
+            report.valid_sessions,
+            report.missing_sessions,
+            report.rejected_records,
+            report.quality_status.value,
+            report.confidence_cap,
+            json.dumps(report.issues_json),
+        ],
+    )
+
+
+def update_ingestion_run(
+    conn: duckdb.DuckDBPyConnection,
+    run_id: str,
+    *,
+    status: str,
+    completed_at: datetime | None = None,
+    records_fetched: int | None = None,
+    records_stored: int | None = None,
+    error_message: str | None = None,
+) -> None:
+    """Update an existing ingestion run with completion metadata.
+
+    Args:
+        conn: DuckDB connection.
+        run_id: UUID of the run to update.
+        status: New status (e.g. completed, failed, partial).
+        completed_at: Completion timestamp.
+        records_fetched: Total records fetched across symbols.
+        records_stored: Total records stored.
+        error_message: Optional error message.
+    """
+    conn.execute(
+        """
+        UPDATE ingestion_runs
+        SET status = ?,
+            completed_at = COALESCE(?, completed_at),
+            records_fetched = COALESCE(?, records_fetched),
+            records_stored = COALESCE(?, records_stored),
+            error_message = COALESCE(?, error_message)
+        WHERE run_id = ?
+        """,
+        [
+            status,
+            completed_at,
+            records_fetched,
+            records_stored,
+            error_message,
+            run_id,
+        ],
+    )

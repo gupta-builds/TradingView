@@ -1,0 +1,8 @@
+[
+  {"date": "2026-03-28", "symbol": "AAPL", "reportedCurrency": "USD", "period": "Q2",
+   "revenue": 95000000000, "operatingIncome": 29500000000, "weightedAverageShsOut": 15000000000},
+  {"date": "2025-12-27", "symbol": "AAPL", "reportedCurrency": "USD", "period": "Q1",
+   "revenue": 124000000000, "operatingIncome": 42500000000, "weightedAverageShsOut": 15100000000},
+  {"date": "2025-09-27", "symbol": "AAPL", "reportedCurrency": "USD", "period": "FY",
+   "revenue": 391000000000, "operatingIncome": 123000000000, "weightedAverageShsOut": 15200000000}
+]

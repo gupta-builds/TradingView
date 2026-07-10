@@ -6,7 +6,7 @@ NYSE and NASDAQ exchanges, accounting for weekends and exchange holidays.
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timezone
 from zoneinfo import ZoneInfo
 
 import exchange_calendars as xcals
@@ -235,3 +235,25 @@ class MarketCalendar:
             )
 
         return calendar.is_session(ts)
+
+    def to_trading_date(self, dt: date | datetime, exchange: str | None) -> date:
+        """Convert a date/datetime to the exchange-local trading date.
+
+        For naive dates, returns the date unchanged. For datetimes, converts
+        to America/New_York before taking the calendar date so bars timestamped
+        in UTC map to the correct US equity session date.
+
+        Args:
+            dt: A date or datetime value from a provider payload.
+            exchange: Exchange name (unused for daily bars; reserved for later).
+
+        Returns:
+            The trading date in the exchange timezone.
+        """
+        _ = exchange  # reserved for multi-exchange timezone mapping
+        if isinstance(dt, datetime):
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt.astimezone(_ET).date()
+        return dt
+

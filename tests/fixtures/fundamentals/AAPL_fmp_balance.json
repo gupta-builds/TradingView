@@ -1,0 +1,8 @@
+[
+  {"date": "2026-03-28", "symbol": "AAPL", "reportedCurrency": "USD", "period": "Q2",
+   "totalDebt": 98000000000, "cashAndCashEquivalents": 32000000000, "totalStockholdersEquity": 67000000000},
+  {"date": "2025-12-27", "symbol": "AAPL", "reportedCurrency": "USD", "period": "Q1",
+   "totalDebt": 97000000000, "cashAndCashEquivalents": 30000000000, "totalStockholdersEquity": 66000000000},
+  {"date": "2025-09-27", "symbol": "AAPL", "reportedCurrency": "USD", "period": "FY",
+   "totalDebt": 96000000000, "cashAndCashEquivalents": 29000000000, "totalStockholdersEquity": 65000000000}
+]

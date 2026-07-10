@@ -14,6 +14,7 @@ from typing import Any
 import duckdb
 
 from research_data.models import (
+    DataQualityReport,
     InsufficientDataError,
     OHLCVRecord,
     PriceAdjustment,
@@ -126,6 +127,66 @@ class PriceReadAPI:
                     )
 
         return records
+
+    def get_quality_report(
+        self,
+        symbol: str,
+        source: str | None = None,
+    ) -> DataQualityReport | None:
+        """Return the latest symbol-level quality report, or None if absent."""
+        conditions = ["symbol = ?"]
+        params: list[Any] = [symbol]
+        if source is not None:
+            conditions.append("source_name = ?")
+            params.append(source)
+        where_clause = " AND ".join(conditions)
+        row = self._conn.execute(
+            f"""
+            SELECT report_id, run_id, symbol, source_name, generated_at,
+                   requested_start_date, requested_end_date,
+                   first_available_date, last_available_date,
+                   expected_sessions, valid_sessions, missing_sessions,
+                   rejected_records, quality_status, confidence_cap, issues_json
+            FROM data_quality_reports
+            WHERE {where_clause}
+            ORDER BY generated_at DESC
+            LIMIT 1
+            """,
+            params,
+        ).fetchone()
+        if row is None:
+            return None
+
+        import json
+
+        generated_at = row[4]
+        if generated_at is not None and generated_at.tzinfo is None:
+            generated_at = generated_at.replace(tzinfo=timezone.utc)
+
+        issues = row[15]
+        if isinstance(issues, str):
+            issues = json.loads(issues)
+        elif issues is None:
+            issues = {}
+
+        return DataQualityReport(
+            report_id=row[0],
+            run_id=str(row[1]),
+            symbol=row[2],
+            source_name=row[3],
+            generated_at=generated_at,
+            requested_start_date=row[5],
+            requested_end_date=row[6],
+            first_available_date=row[7],
+            last_available_date=row[8],
+            expected_sessions=row[9],
+            valid_sessions=row[10],
+            missing_sessions=list(row[11] or []),
+            rejected_records=row[12],
+            quality_status=QualityStatus(row[13]),
+            confidence_cap=row[14],
+            issues_json=issues if isinstance(issues, dict) else {},
+        )
 
     def _row_to_record(self, row: tuple) -> OHLCVRecord:
         """Convert a DuckDB row tuple to an OHLCVRecord instance."""

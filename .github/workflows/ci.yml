@@ -1,0 +1,65 @@
+# Keep main green. Every push and every pull request must pass the offline suite.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: pytest (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install package (editable)
+        run: pip install -e .
+
+      - name: Run full offline test suite
+        run: pytest -q --tb=short
+
+      - name: Guardrail — .env never tracked
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -E '(^|/)\.env$'; then
+            echo "ERROR: .env must never be tracked"
+            exit 1
+          fi
+          echo ".env not tracked — ok"
+
+  guardrails:
+    name: scope and language guardrails
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install package (editable)
+        run: pip install -e .
+
+      - name: Security / scope tests only
+        run: pytest -q tests/test_security_scope.py tests/test_package_invariants.py --tb=short

@@ -1,0 +1,8 @@
+[
+  {"date": "2026-03-28", "symbol": "AAPL", "reportedCurrency": "USD", "period": "Q2",
+   "operatingCashFlow": 28000000000, "capitalExpenditure": -2900000000},
+  {"date": "2025-12-27", "symbol": "AAPL", "reportedCurrency": "USD", "period": "Q1",
+   "operatingCashFlow": 39000000000, "capitalExpenditure": -3100000000},
+  {"date": "2025-09-27", "symbol": "AAPL", "reportedCurrency": "USD", "period": "FY",
+   "operatingCashFlow": 118000000000, "capitalExpenditure": -11000000000}
+]

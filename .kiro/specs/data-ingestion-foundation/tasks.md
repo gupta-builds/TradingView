@@ -160,7 +160,7 @@ This plan implements a provider-agnostic market data ingestion system in Python 
     - Test calendar latest expected session logic around 16:00 ET
     - _Requirements: 4.1–4.6, 6.1–6.5_
 
-- [ ] 7. Implement data quality auditor
+- [x] 7. Implement data quality auditor
   - [x] 7.1 Implement quality auditor in `src/research_data/quality.py`
     - Generate per-symbol quality reports after ingestion
     - Assign QualityStatus based on precedence: MISSING > CONTRADICTORY > STALE > INSUFFICIENT_DATA > PARTIAL > USABLE
@@ -170,17 +170,17 @@ This plan implements a provider-agnostic market data ingestion system in Python 
     - Support cross-provider disagreement detection (>1% difference)
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9, 7.10_
 
-  - [-] 7.2 Write property test for quality status classification (Property 5)
+  - [x] 7.2 Write property test for quality status classification (Property 5)
     - **Property 5: Quality Status Classification Correctness**
     - Use Hypothesis to generate various data scenarios and verify correct QualityStatus assignment per precedence rules
     - **Validates: Requirements 7.2, 7.3, 7.4, 7.5, 7.6, 7.7**
 
-  - [-] 7.3 Write property test for rejected records counting (Property 17)
+  - [x] 7.3 Write property test for rejected records counting (Property 17)
     - **Property 17: Rejected Records Counted in Quality Report**
     - Use Hypothesis to generate batches with N invalid records and verify rejected_records equals N
     - **Validates: Requirements 5.9, 13.4**
 
-  - [-] 7.4 Write unit tests for quality auditor
+  - [x] 7.4 Write unit tests for quality auditor
     - Test MISSING status when zero rows
     - Test STALE status when latest bar is old
     - Test CONTRADICTORY status for impossible OHLC
@@ -190,11 +190,11 @@ This plan implements a provider-agnostic market data ingestion system in Python 
     - Test precedence ordering
     - _Requirements: 7.1–7.10_
 
-- [~] 8. Checkpoint - Ensure all tests pass
+- [x] 8. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. Implement Read API and evidence packets
-  - [-] 9.1 Implement Read API in `src/research_data/read_api.py`
+- [x] 9. Implement Read API and evidence packets
+  - [x] 9.1 Implement Read API in `src/research_data/read_api.py`
     - Implement `get_price_frame` returning OHLCV rows ordered by (symbol, trading_date)
     - Filter by source and price_adjustment when specified
     - Exclude MISSING, CONTRADICTORY, INSUFFICIENT_DATA when require_usable=True
@@ -203,7 +203,7 @@ This plan implements a provider-agnostic market data ingestion system in Python 
     - Return empty collection for zero-match queries (no error)
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-  - [-] 9.2 Implement evidence packet builder in `src/research_data/evidence.py`
+  - [x] 9.2 Implement evidence packet builder in `src/research_data/evidence.py`
     - Build DataEvidencePacket from stored data with all required fields
     - Set confidence_cap ≤ 0.5 for STALE or INSUFFICIENT_DATA
     - Include at least one evidence_ref per contributing data source
@@ -211,33 +211,33 @@ This plan implements a provider-agnostic market data ingestion system in Python 
     - Ensure JSON serialization round-trip via Pydantic
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6_
 
-  - [~] 9.3 Write property test for Read API ordering (Property 7)
+  - [x] 9.3 Write property test for Read API ordering (Property 7)
     - **Property 7: Read API Ordering Guarantee**
     - Use Hypothesis to generate multi-symbol datasets and verify returned rows are monotonically ordered by (symbol, trading_date)
     - **Validates: Requirements 10.1**
 
-  - [~] 9.4 Write property test for Read API usability filter (Property 8)
+  - [x] 9.4 Write property test for Read API usability filter (Property 8)
     - **Property 8: Read API Usability Filter**
     - Use Hypothesis to generate records with various quality statuses and verify require_usable=True excludes MISSING, CONTRADICTORY, INSUFFICIENT_DATA
     - **Validates: Requirements 10.2**
 
-  - [~] 9.5 Write property test for Read API source/adjustment filtering (Property 9)
+  - [x] 9.5 Write property test for Read API source/adjustment filtering (Property 9)
     - **Property 9: Read API Source and Adjustment Filtering**
     - Use Hypothesis to generate records with multiple sources/adjustments and verify filters return exact matches only
     - **Validates: Requirements 10.5**
 
-  - [~] 9.6 Write property test for evidence packet completeness (Property 15)
+  - [x] 9.6 Write property test for evidence packet completeness (Property 15)
     - **Property 15: Evidence Packet Completeness and Confidence Cap**
     - Use Hypothesis to generate evidence packets and verify all required fields present and confidence_cap constraints hold
     - **Validates: Requirements 12.1, 12.2, 12.3**
 
-  - [~] 9.7 Write property test for evidence packet serialization (Property 16)
+  - [x] 9.7 Write property test for evidence packet serialization (Property 16)
     - **Property 16: Evidence Packet Serialization Round-Trip**
     - Use Hypothesis to generate valid DataEvidencePacket instances, serialize to JSON, deserialize, and verify equivalence
     - **Validates: Requirements 12.4**
 
-- [ ] 10. Implement benchmark reporter
-  - [~] 10.1 Implement benchmark reporter in `src/research_data/benchmark.py`
+- [x] 10. Implement benchmark reporter
+  - [x] 10.1 Implement benchmark reporter in `src/research_data/benchmark.py`
     - Compute total return, annualized return, annualized volatility, maximum drawdown, latest data date, missing-session count, benchmark excess return, and quality status
     - Compare against configured ETF baseline (default VOO) using overlapping sessions only
     - Refuse computation when symbol has INSUFFICIENT_DATA, MISSING, or STALE status
@@ -247,25 +247,25 @@ This plan implements a provider-agnostic market data ingestion system in Python 
     - Never use BUY, SELL, HOLD or execution language
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6_
 
-  - [~] 10.2 Write property test for benchmark refuses insufficient data (Property 20)
+  - [x] 10.2 Write property test for benchmark refuses insufficient data (Property 20)
     - **Property 20: Benchmark Reporter Refuses Insufficient Data**
     - Use Hypothesis to generate symbols with INSUFFICIENT_DATA or MISSING status and verify metrics computation is refused
     - **Validates: Requirements 11.3**
 
-  - [~] 10.3 Write property test for no execution language (Property 14)
+  - [x] 10.3 Write property test for no execution language (Property 14)
     - **Property 14: No Execution Language in System Output**
     - Use Hypothesis to generate various benchmark outputs and verify no BUY/SELL/HOLD directives appear
     - **Validates: Requirements 9.5, 11.4, 11.5**
 
-  - [~] 10.4 Write unit tests for benchmark reporter
+  - [x] 10.4 Write unit tests for benchmark reporter
     - Test correct metric computation with known fixture data
     - Test refusal for insufficient data
     - Test overlapping session logic
     - Test quality status label mapping
     - _Requirements: 11.1–11.6_
 
-- [ ] 11. Implement Polygon provider
-  - [~] 11.1 Implement Polygon provider in `src/research_data/providers/polygon.py`
+- [x] 11. Implement Polygon provider
+  - [x] 11.1 Implement Polygon provider in `src/research_data/providers/polygon.py`
     - Conform to PriceProvider protocol
     - Implement fetch_daily_ohlcv with rate limiting (5 calls/minute for free tier)
     - Implement retry logic: up to 3 retries with exponential backoff starting at 2 seconds
@@ -274,15 +274,15 @@ This plan implements a provider-agnostic market data ingestion system in Python 
     - Include rate_limit_state in ProviderFetchResult
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-  - [~] 11.2 Write unit tests for Polygon provider
+  - [x] 11.2 Write unit tests for Polygon provider
     - Test successful fetch with mocked HTTP responses
     - Test rate limit backoff behavior
     - Test retry on 5xx errors
     - Test empty response handling
     - _Requirements: 2.1–2.5_
 
-- [ ] 12. Implement CLI interface
-  - [~] 12.1 Implement CLI in `src/research_data/cli.py`
+- [x] 12. Implement CLI interface
+  - [x] 12.1 Implement CLI in `src/research_data/cli.py`
     - Use Typer for typed command signatures
     - Implement `init-db` command: create DuckDB and all tables at specified or default path
     - Implement `ingest-prices` command: fetch, store raw, normalize, validate, write quality reports, print per-symbol summary
@@ -294,24 +294,24 @@ This plan implements a provider-agnostic market data ingestion system in Python 
     - Verify .env is in .gitignore before loading API keys
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 14.1, 14.5_
 
-  - [~] 12.2 Wire ingestion pipeline end-to-end
+  - [x] 12.2 Wire ingestion pipeline end-to-end
     - Connect CLI → ProviderRegistry → Provider → RawPayloadWriter → Normalizer → Validator → MarketCalendar → QualityAuditor → Storage
     - Record ingestion runs with all metadata
     - Handle partial runs (rate limit) and failed runs (provider outage)
     - Implement error handling per design: missing API key exits early, rate limit backs off, provider outage marks failed, validation rejects bad rows
     - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6_
 
-  - [~] 12.3 Write property test for ingestion idempotence (Property 19)
+  - [x] 12.3 Write property test for ingestion idempotence (Property 19)
     - **Property 19: Ingestion Idempotence for Identical Payloads**
     - Use Hypothesis to generate payloads, ingest twice, and verify no duplicate normalized records or data corruption
     - **Validates: Requirements 8.2, 8.5**
 
-  - [~] 12.4 Write property test for raw-before-normalized ordering (Property 4)
+  - [x] 12.4 Write property test for raw-before-normalized ordering (Property 4)
     - **Property 4: Raw Before Normalized Ordering Invariant**
     - Verify that for every normalized record, a raw_market_payloads row exists with matching hash and earlier/equal timestamp
     - **Validates: Requirements 3.1, 5.8**
 
-  - [~] 12.5 Write integration tests for CLI
+  - [x] 12.5 Write integration tests for CLI
     - Test `init-db` creates all tables in fresh DuckDB
     - Test `ingest-prices --provider csv_fixture` end-to-end pipeline
     - Test `audit-prices` prints correct quality status
@@ -320,22 +320,22 @@ This plan implements a provider-agnostic market data ingestion system in Python 
     - Test invalid command exits with usage message
     - _Requirements: 9.1–9.7, 15.1, 15.2_
 
-- [ ] 13. Implement scope boundary enforcement and security checks
-  - [~] 13.1 Add scope boundary validation
+- [x] 13. Implement scope boundary enforcement and security checks
+  - [x] 13.1 Add scope boundary validation
     - Ensure no broker SDK or order-routing dependencies in requirements/setup files
     - Ensure no intraday/tick/options/futures/crypto data paths exist
     - Ensure no LLM calls in ingestion path
     - Add `.env` to `.gitignore` if not present
     - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 14.1, 14.5_
 
-  - [~] 13.2 Write unit tests for security and scope boundaries
+  - [x] 13.2 Write unit tests for security and scope boundaries
     - Test API keys loaded only from env vars or .env
     - Test .gitignore check refuses start when .env not listed
     - Test no execution language in CLI help text
     - Test no predictive language in outputs
     - _Requirements: 14.1, 14.5, 16.5_
 
-- [~] 14. Final checkpoint - Ensure all tests pass
+- [x] 14. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
