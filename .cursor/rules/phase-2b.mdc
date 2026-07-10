@@ -1,0 +1,43 @@
+---
+description: Phase 2b — Fable design SoT; Cursor deepen + V1–V5 before any Fable coding
+globs: scripts/**/*.py,src/research_data/strategies/**/*.py,src/research_data/gates/**/*.py,Docs/PHASE2B*.md,Docs/HISTORY*.md,Docs/PHASE2_STRATEGY_PACK.md
+alwaysApply: false
+---
+
+# Phase 2b (quote Fable design — do not invent minima)
+
+**SoT:** `Docs/PHASE2B_PROBLEM_STATEMENT.md` + `Docs/PHASE2B_SOLUTION_DESIGN.md`.
+Pack: `Docs/PHASE2_STRATEGY_PACK.md`. Ops: `Docs/HISTORY_DEPTH.md`.
+
+## Goal
+Same production hook `research_data.strategies.quality_momentum:quality_momentum_tilt_hook`
+on deep real DuckDB → all four gates at **unchanged** defaults → human decision
+by `anant` → journal vs VOO (trade count, costs, max DD, `voo_return_same_period`).
+
+## Data SoT (measured)
+- `R = N − 253`. Binding WF: train 504 / test 126 / step 126 / min_windows=3 →
+  **N ≥ 1135** (gates-can-complete). Recommended **N ≥ 1513** (6 WF windows).
+- Price start ≈ **2022-01** (min) / **2020-07** (recommended).
+- **V5 fundamentals hard go/no-go equal to V1** — shallow SEC → early cash at
+  0.0 → WF `fraction_positive` drag (zeros are not `> 0`).
+- Current Basic key: ~501 bars from 2024-07-10 — **blocked**.
+
+## Cursor vs Fable (quota)
+| Owner | Work |
+|---|---|
+| **Cursor** | Massive/Tiingo depth decision; OHLCV backfill; SEC quarterly backfill; run V1–V5; stop+ping if truncate; never loosen gates; never mix price sources before F1 |
+| **Fable** (only after V1–V5 green) | **F1** `--source` → `get_price_frame(source=...)`; **F2** depth preflight `N,R` vs gate minima; **F3** stdout: per-window WF table, DSR intermediates, cash-session count, eligible cross-section size; then promotion study on new `feat/...` branch |
+
+## Risks (do not ignore)
+- **F1 source-filter gap:** PK includes `source`; mixed providers duplicate dates and corrupt calendars.
+- **Cash-drag:** fix fundamentals depth (Cursor), not strategy/gates.
+- **Synthetic 1300-session pass = capability only**, not promotion evidence.
+- DuckDB single-writer: backup before study; never concurrent with ingest.
+
+## Out of scope
+New strategies, Kronos RankIC, analyst/UI, orchestration rewrite, PM, gate edits,
+auto-DEMO_ELIGIBLE, prices-only “first” study.
+
+## Human decisions (`anant`)
+Provider/plan; always record a decision after a deep study; DEMO_ELIGIBLE only
+on 4/4 **and** agreement (HOLD if trails VOO); merge PR #1 separately from Phase 2b branch.

@@ -60,8 +60,37 @@ Short lessons only: corrections + confirmed approaches. Read at each work block.
   "decide at close i, earn from i+1" makes prefix-invariance provable in a test — truncating the future
   must leave past returns/decisions bit-identical.
 
+## Phase 2b analysis pass (2026-07-11)
+
+- Exact gate minima re-derived from source (R = panel sessions − 253): OOS needs R ≥ 200 (0.3·R ≥ 60);
+  MC R ≥ 120; walk-forward k windows need R ≥ 630 + (k−1)·126 → 3 windows = R 882 = **panel 1135
+  (~4.5y)**, 6 windows = R 1260 = **panel 1513 (~6.0y)**. Walk-forward is always the binding gate.
+- Cash sessions are walk-forward poison: a test window of 0.0 returns is NOT > 0, so it counts against
+  `fraction_positive`. Fundamentals depth must reach (price_start + ~12mo − 90d) or early rebalances
+  sit in cash and WF fails for data reasons, not edge reasons.
+- Found (not yet fixed): the study path never filters `daily_ohlcv.source` and the PK includes source —
+  two providers for the same symbol/date would duplicate calendar dates and corrupt the series. Guard
+  needed before any second price source lands (Phase 2b item F1).
+- Live DB fundamentals are shallower than they look: 12 SEC snapshots/equity but earliest *quarterly*
+  fiscal_period_end is 2023-12 (BRKB/GOOGL/META) and 2025-Q1+ for most — insufficient even for the
+  4.5y price tier; SEC companyfacts backfill required.
+- `providers.toml` already encodes provider depth facts: polygon free 2.0y, tiingo 5.0y (50/min,
+  div-adjusted, no client yet), alpha_vantage 20y free but `split_adjusted` only (dividend-blind —
+  wrong for total-return momentum vs VOO).
+- DuckDB is single-writer: hit a live lock (concurrent ingest) mid-analysis; the pre-study backup copy
+  in scratchpad answered the remaining read-only queries. Backup-before-write also gives you a
+  queryable snapshot when the main file is locked.
+
 ## Post-main shakeout (2026-07-11)
 
 - `main` commit `69b1d0c` verified on `origin/main`; `.env` gitignored with keys set.
 - Live shakeout: Polygon 14/14 OHLCV; FMP 9/10 equities (BRKB 402 free-plan); SEC 10/10 equities.
 - Still deferred: Kronos inference (RankIC first), UI/charting, multi-agent, real-money/PM.
+
+## History deepen attempt (2026-07-11, Cursor)
+
+- Max Basic ingest raised DuckDB from 274 → **501** sessions/symbol (first bar 2024-07-10).
+- Probe for 2021-01-01 still truncates — current key is Massive **Basic** (2y), not Starter (5y).
+- Default WF still needs ≥ ~1135 sessions; Phase 2b blocked until Starter+ upgrade.
+- Do not loosen gate constants. Use `scripts/deepen_history.py` after upgrade.
+- Graphify rebuilt (1844 nodes). Vault SoT: Session Findings — Post Base (2026-07-11).

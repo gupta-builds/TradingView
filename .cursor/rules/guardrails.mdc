@@ -1,0 +1,19 @@
+---
+description: Guardrail sweep patterns when editing src/, tests/, Docs/, CLI
+globs: src/**/*.py,tests/**/*.py,Docs/**/*.md,CLAUDE.md,README.md
+alwaysApply: false
+---
+
+# Guardrails (grep-first)
+
+Before finishing any PR that touches user-facing strings or data paths:
+
+1. No `BUY`/`SELL`/"guaranteed"/"risk-free" in user-facing output (whitelist enforcement code in `benchmark.py` / tests that assert the ban).
+2. Action fields only: WATCH | HOLD | ACCUMULATE | REDUCE | AVOID | INSUFFICIENT_DATA.
+3. Never fabricate missing prices/fundamentals — surface INSUFFICIENT_DATA / MISSING.
+4. Confidence capped by QualityStatus precedence in `quality.py`.
+5. No secrets in source/fixtures; `.env` gitignored.
+6. No LLM calls in ingestion path modules.
+7. No broker SDKs; no options/futures/crypto/margin/intraday paths this phase.
+
+Use the `guardrail-auditor` agent (or `.claude/skills/guardrail-check`) before merge.
