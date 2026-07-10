@@ -141,9 +141,12 @@ the model; nothing feeds promote/demote.
 
 - ~~`.kiro` leftovers~~ — completed by Cursor 2026-07-10 (quality tests, evidence builder, benchmark,
   polygon client, CLI, scope checks).
-- Live-data shakeout: first real polygon/FMP/SEC ingestion with keys, real replay studies.
+- ~~Live-data shakeout~~ — completed 2026-07-10/11: Polygon/Massive 14/14 OHLCV (~400d free-tier window),
+  FMP `/stable` for 9/10 equities (BRKB 402 on free plan; SEC covers it), SEC companyfacts 10/10 equities.
+  ETF fundamentals remain empty by design (no fabrication).
+- ~~`storage.py` naive-UTC timestamps~~ — fixed 2026-07-11 (`_to_db_ts` on all TIMESTAMP inserts).
 - Multi-agent debate layer, Streamlit UI, charting library choice.
-- Kronos download/inference + RankIC validation pass.
+- Kronos download/inference + RankIC validation pass (separate session).
 - Real-money surface, TradingView.com record-keeping, Kalshi/Polymarket vertical (only after paper readiness).
 
 ## How to run
@@ -154,6 +157,15 @@ pip install -e .          # once
 pytest                    # offline; all tests must pass without network or keys
 ```
 
-Live keys (`.env`, gitignored): `POLYGON_API_KEY`, `FMP_API_KEY`,
-`SEC_USER_AGENT` (format `AppName your.email@example.com`). `research_data.env.load_dotenv()` loads them
-safely; values are never printed or stored unredacted.
+Live keys (`.env`, gitignored):
+- `POLYGON_API_KEY` from [Massive dashboard](https://massive.com/dashboard/api-keys)
+  (Polygon.io rebranded to Massive; **not** polygon.technology).
+  Optional alias: `MASSIVE_API_KEY`. Hosts: `api.polygon.io` / `api.massive.com`.
+- `FMP_API_KEY` — client uses `https://financialmodelingprep.com/stable/...` (legacy `/api/v3` is closed for new keys).
+- `SEC_USER_AGENT` (format `AppName your.email@example.com`).
+
+`research_data.env.load_dotenv()` loads them safely; values are never printed or stored unredacted.
+
+Free-tier notes: Polygon rejects very old history with `NOT_AUTHORIZED` timeframe errors — use a recent
+window (≈ last 1–2 years). Rate limit ≈ 5/min; the client retries HTTP 429. FMP may return HTTP 402
+for some tickers on free plans; SEC is the free backup for equities.

@@ -122,3 +122,29 @@ class TestPolygonProvider:
         assert sleeper.called
         waited = max(call.args[0] for call in sleeper.call_args_list)
         assert waited > 0
+
+    def test_brkb_maps_to_brk_b_in_request_url(self):
+        urlopen = MagicMock(return_value=_response(json.dumps({"results": []})))
+        provider = PolygonProvider(
+            _config(), _caps(), api_key=_FIXTURE_CREDENTIAL, sleeper=MagicMock(), urlopen=urlopen
+        )
+        result = provider.fetch_daily_ohlcv("BRKB", date(2024, 1, 1), date(2024, 1, 2), True)
+        assert result.symbol == "BRKB"
+        assert "BRK.B" in result.request_url
+        assert "BRKB" not in result.request_url.split("/ticker/")[1].split("/")[0]
+        assert result.request_params["api_ticker"] == "BRK.B"
+
+    def test_retries_on_429_rate_limit(self):
+        good_ts = int(datetime(2024, 1, 3, 5, 0, tzinfo=timezone.utc).timestamp() * 1000)
+        good = _response(json.dumps({"results": [{"o": 1, "h": 2, "l": 0.5, "c": 1.5, "v": 10, "t": good_ts}]}))
+        err = urllib.error.HTTPError(
+            "https://api.polygon.io", 429, "Too Many Requests", hdrs=None, fp=io.BytesIO(b"")
+        )
+        urlopen = MagicMock(side_effect=[err, good])
+        sleeper = MagicMock()
+        provider = PolygonProvider(
+            _config(), _caps(), api_key=_FIXTURE_CREDENTIAL, sleeper=sleeper, urlopen=urlopen
+        )
+        result = provider.fetch_daily_ohlcv("AAPL", date(2024, 1, 1), date(2024, 1, 31), True)
+        assert len(result.records) == 1
+        assert any(call.args[0] >= 60.0 for call in sleeper.call_args_list)

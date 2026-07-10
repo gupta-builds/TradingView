@@ -19,9 +19,12 @@ from research_data.fundamentals.models import (
     FundamentalsSnapshot,
 )
 
-FMP_BASE_URL = "https://financialmodelingprep.com/api/v3"
+FMP_BASE_URL = "https://financialmodelingprep.com/stable"
 API_KEY_ENV_VAR = "FMP_API_KEY"
+# Path segment → query-style stable endpoints (post Aug 2025; /api/v3 is legacy-only).
 _STATEMENTS = ("income-statement", "balance-sheet-statement", "cash-flow-statement")
+# Canonical universe → FMP ticker punctuation.
+FMP_TICKER_OVERRIDES = {"BRKB": "BRK.B"}
 
 
 class FMPError(Exception):
@@ -125,16 +128,21 @@ class FMPFundamentalsClient:
         raw: dict[str, str] = {}
         clean_urls: list[str] = []
         warnings: list[str] = []
+        api_symbol = FMP_TICKER_OVERRIDES.get(symbol.upper(), symbol.upper())
         for statement in _STATEMENTS:
-            params = {"period": period, "limit": str(limit)}
+            params = {
+                "symbol": api_symbol,
+                "period": period,
+                "limit": str(limit),
+            }
             clean_url = (
-                f"{FMP_BASE_URL}/{statement}/{urllib.parse.quote(symbol)}"
+                f"{FMP_BASE_URL}/{statement}"
                 f"?{urllib.parse.urlencode(params)}"
             )
             clean_urls.append(clean_url)  # stored metadata: no credentials
             live_params = {**params, "apikey": api_key}
             request_url = (
-                f"{FMP_BASE_URL}/{statement}/{urllib.parse.quote(symbol)}"
+                f"{FMP_BASE_URL}/{statement}"
                 f"?{urllib.parse.urlencode(live_params)}"
             )
             request = urllib.request.Request(
@@ -147,7 +155,7 @@ class FMPFundamentalsClient:
                 raise FMPError(f"FMP request failed for {clean_url}: {e}") from e
 
         snapshots = parse_fmp_statements(
-            symbol,
+            symbol.upper(),
             raw["income-statement"],
             raw["balance-sheet-statement"],
             raw["cash-flow-statement"],

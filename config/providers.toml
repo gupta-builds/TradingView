@@ -7,8 +7,10 @@ provider = "polygon"
 
 [providers.polygon]
 source_name = "polygon"
+# Massive.com (formerly Polygon.io). api.polygon.io remains valid during transition;
+# api.massive.com is the new host. Keys from https://massive.com/dashboard/api-keys
 source_url = "https://api.polygon.io"
-license_note = "Polygon Basic plan - free tier with end-of-day data, 2 years history, 5 calls/minute"
+license_note = "Massive (formerly Polygon.io) Basic — EOD data; verify current free-tier limits (historically ~5 calls/min)"
 requires_api_key = true
 rate_limit = 5
 adjustment_policy = "split_dividend_adjusted"
@@ -62,8 +64,8 @@ experimental = false
 
 [providers.fmp]
 source_name = "fmp"
-source_url = "https://financialmodelingprep.com/api"
-license_note = "FMP - verify current plan limits before production use"
+source_url = "https://financialmodelingprep.com/stable"
+license_note = "FMP stable API (financialmodelingprep.com/stable) — verify current plan limits; /api/v3 is legacy-only after Aug 2025"
 requires_api_key = true
 rate_limit = 10
 adjustment_policy = "split_dividend_adjusted"

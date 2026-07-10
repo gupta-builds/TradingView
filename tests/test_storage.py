@@ -32,6 +32,7 @@ from research_data.storage import (
     record_ingestion_run,
     redact_secrets,
     seed_metadata,
+    update_ingestion_run,
     write_raw_payload,
 )
 
@@ -973,3 +974,76 @@ class TestWriteRawPayload:
 
         assert isinstance(result, str)
         assert len(result) == 64  # SHA-256 hex digest length
+
+
+class TestStorageTimestampNormalization:
+    """DuckDB TIMESTAMP must receive naive UTC, not tz-aware local conversion."""
+
+    def test_ohlcv_retrieved_at_stored_as_naive_utc(self, db):
+        from research_data.storage import _to_db_ts
+
+        aware = datetime(2024, 3, 15, 21, 0, 0, tzinfo=timezone.utc)
+        naive = _to_db_ts(aware)
+        assert naive is not None
+        assert naive.tzinfo is None
+        assert naive == datetime(2024, 3, 15, 21, 0, 0)
+
+    def test_ohlcv_insert_round_trips_utc_wall_clock(self, db):
+        """Even on non-UTC hosts, stored wall-clock must match the UTC instant."""
+        from zoneinfo import ZoneInfo
+
+        # Simulate a non-UTC "now" that would corrupt if DuckDB used local tz.
+        et = ZoneInfo("America/New_York")
+        aware_et = datetime(2024, 6, 15, 12, 0, 0, tzinfo=et)  # EDT = UTC-4
+        record = _make_record(
+            retrieved_at=aware_et,
+        )
+        batch_insert_ohlcv(db, [record])
+        row = db.execute(
+            "SELECT retrieved_at FROM daily_ohlcv WHERE symbol = ?",
+            [record.symbol],
+        ).fetchone()
+        assert row is not None
+        # Expect UTC wall clock 16:00 on 2024-06-15
+        expected = datetime(2024, 6, 15, 16, 0, 0)
+        stored = row[0]
+        stored = stored.replace(tzinfo=None) if getattr(stored, "tzinfo", None) else stored
+        assert stored == expected
+
+    def test_ingestion_run_timestamps_normalized(self, db):
+        from zoneinfo import ZoneInfo
+
+        et = ZoneInfo("America/New_York")
+        started = datetime(2024, 6, 15, 10, 0, 0, tzinfo=et)
+        run_id = record_ingestion_run(
+            db,
+            {
+                "source_name": "csv_fixture",
+                "started_at": started,
+                "completed_at": None,
+                "symbols_requested": ["AAPL"],
+                "start_date": date(2024, 1, 1),
+                "end_date": date(2024, 1, 31),
+                "adjusted": True,
+                "status": "running",
+                "records_fetched": 0,
+                "records_stored": 0,
+                "error_message": None,
+                "config_hash": "abc",
+            },
+        )
+        update_ingestion_run(
+            db,
+            run_id,
+            status="completed",
+            completed_at=datetime(2024, 6, 15, 11, 0, 0, tzinfo=et),
+            records_fetched=1,
+            records_stored=1,
+        )
+        row = db.execute(
+            "SELECT started_at, completed_at FROM ingestion_runs WHERE run_id = ?",
+            [run_id],
+        ).fetchone()
+        started_stored, completed_stored = row
+        assert started_stored.replace(tzinfo=None) == datetime(2024, 6, 15, 14, 0, 0)
+        assert completed_stored.replace(tzinfo=None) == datetime(2024, 6, 15, 15, 0, 0)

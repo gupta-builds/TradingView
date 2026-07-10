@@ -23,6 +23,18 @@ from research_data.config import AppConfig
 from research_data.models import DataQualityReport, OHLCVRecord, ProviderFetchResult
 
 
+def _to_db_ts(value: datetime | None) -> datetime | None:
+    """Normalize to naive UTC before insert.
+
+    DuckDB ``TIMESTAMP`` columns convert tz-aware datetimes to *local* time and
+    drop the offset, which corrupts round-trips on non-UTC machines. Match the
+    brain/paper/fundamentals stores: always persist naive UTC.
+    """
+    if value is None or value.tzinfo is None:
+        return value
+    return value.astimezone(timezone.utc).replace(tzinfo=None)
+
+
 # ---------------------------------------------------------------------------
 # SQL Schema Definitions
 # ---------------------------------------------------------------------------
@@ -258,7 +270,7 @@ def _upsert_single_record(
             record.currency,
             record.source,
             record.source_record_id,
-            record.retrieved_at,
+            _to_db_ts(record.retrieved_at),
             record.data_as_of,
             record.raw_payload_hash,
             record.quality_status.value,
@@ -311,8 +323,8 @@ def record_ingestion_run(
         [
             run_id,
             run_data["source_name"],
-            run_data["started_at"],
-            run_data.get("completed_at"),
+            _to_db_ts(run_data["started_at"]),
+            _to_db_ts(run_data.get("completed_at")),
             run_data["symbols_requested"],
             run_data["start_date"],
             run_data["end_date"],
@@ -343,7 +355,7 @@ def seed_metadata(conn: duckdb.DuckDBPyConnection, config: AppConfig) -> None:
         conn: DuckDB connection.
         config: Loaded and validated AppConfig instance.
     """
-    now = datetime.now(timezone.utc)
+    now = _to_db_ts(datetime.now(timezone.utc))
 
     # Seed providers
     for provider in config.providers.values():
@@ -529,7 +541,7 @@ def write_raw_payload(
             run_id,
             fetch_result.provider,
             fetch_result.symbol,
-            fetch_result.retrieved_at,
+            _to_db_ts(fetch_result.retrieved_at),
             fetch_result.request_url,
             json.dumps(redacted_params),
             payload_path,
@@ -588,7 +600,7 @@ def store_quality_report(
             report.run_id,
             report.symbol,
             report.source_name,
-            report.generated_at,
+            _to_db_ts(report.generated_at),
             report.requested_start_date,
             report.requested_end_date,
             report.first_available_date,
@@ -637,7 +649,7 @@ def update_ingestion_run(
         """,
         [
             status,
-            completed_at,
+            _to_db_ts(completed_at),
             records_fetched,
             records_stored,
             error_message,

@@ -32,9 +32,16 @@ _DEFAULT_BASE_URL = "https://api.polygon.io"
 _MAX_RETRIES = 3
 _BACKOFF_BASE_SECONDS = 2.0
 
+# Canonical universe symbols → Polygon/Massive ticker punctuation.
+POLYGON_TICKER_OVERRIDES = {"BRKB": "BRK.B"}
+
 
 class PolygonProvider:
-    """PriceProvider implementation for Polygon Basic EOD aggregates.
+    """PriceProvider implementation for Polygon/Massive Basic EOD aggregates.
+
+    Polygon.io rebranded to Massive.com (Oct 2025). Existing keys and
+    ``api.polygon.io`` continue to work; ``api.massive.com`` is the new default
+    host. Env: ``POLYGON_API_KEY`` (preferred) or ``MASSIVE_API_KEY``.
 
     Rate limit: 5 calls/minute on the free tier (configurable via ProviderConfig).
     Retries: up to 3 attempts with exponential backoff starting at 2 seconds
@@ -53,7 +60,12 @@ class PolygonProvider:
     ) -> None:
         self.capabilities = capabilities
         self._config = config
-        self._api_key = api_key or os.environ.get(config.api_key_env_var or "POLYGON_API_KEY", "")
+        env_name = config.api_key_env_var or "POLYGON_API_KEY"
+        self._api_key = (
+            api_key
+            or os.environ.get(env_name, "")
+            or os.environ.get("MASSIVE_API_KEY", "")
+        )
         self._base_url = (base_url or config.source_url or _DEFAULT_BASE_URL).rstrip("/")
         self._rate_limit = config.rate_limit_per_minute or config.rate_limit or 5
         self._min_interval = 60.0 / self._rate_limit if self._rate_limit > 0 else 0.0
@@ -69,14 +81,16 @@ class PolygonProvider:
         end: date,
         adjusted: bool,
     ) -> ProviderFetchResult:
-        """Fetch daily OHLCV aggregates for a symbol from Polygon.
+        """Fetch daily OHLCV aggregates for a symbol from Polygon/Massive.
 
         Returns zero records (no fabrication) when the API returns an empty
         results list or a 404-style empty payload.
         """
+        canonical = symbol.upper()
+        api_ticker = POLYGON_TICKER_OVERRIDES.get(canonical, canonical)
         retrieved_at = datetime.now(timezone.utc)
         path = (
-            f"/v2/aggs/ticker/{urllib.parse.quote(symbol)}/range/1/day/"
+            f"/v2/aggs/ticker/{urllib.parse.quote(api_ticker)}/range/1/day/"
             f"{start.isoformat()}/{end.isoformat()}"
         )
         params = {
@@ -95,7 +109,7 @@ class PolygonProvider:
 
         content_hash = hashlib.sha256(raw_payload.encode("utf-8")).hexdigest()
         records, warnings = self._parse_payload(
-            symbol=symbol,
+            symbol=canonical,
             raw_payload=raw_payload,
             adjusted=adjusted,
             retrieved_at=retrieved_at,
@@ -106,11 +120,12 @@ class PolygonProvider:
             warnings.append("Empty provider response: zero records returned")
 
         return ProviderFetchResult(
-            symbol=symbol,
+            symbol=canonical,
             provider=self._config.source_name,
             request_url=redacted_url,
             request_params={
-                "symbol": symbol,
+                "symbol": canonical,
+                "api_ticker": api_ticker,
                 "start": start.isoformat(),
                 "end": end.isoformat(),
                 "adjusted": adjusted,
@@ -162,11 +177,17 @@ class PolygonProvider:
                     return text, int(status)
             except urllib.error.HTTPError as e:
                 last_error = e
-                if e.code < 500 or attempt >= _MAX_RETRIES:
+                # Retry rate-limit (429) and server errors; fail closed on other 4xx.
+                retryable = e.code == 429 or e.code >= 500
+                if not retryable or attempt >= _MAX_RETRIES:
                     if e.code == 404:
                         return json.dumps({"results": [], "status": "NOT_FOUND"}), 404
                     raise
-                self._sleeper(_BACKOFF_BASE_SECONDS * (2**attempt))
+                # 429: wait at least one full free-tier minute window when possible.
+                if e.code == 429:
+                    self._sleeper(max(60.0, _BACKOFF_BASE_SECONDS * (2**attempt)))
+                else:
+                    self._sleeper(_BACKOFF_BASE_SECONDS * (2**attempt))
             except (urllib.error.URLError, TimeoutError, OSError) as e:
                 last_error = e
                 if attempt >= _MAX_RETRIES:

@@ -44,6 +44,7 @@ class FundamentalsStore:
 
     def __init__(self, conn: duckdb.DuckDBPyConnection) -> None:
         self._conn = conn
+        self.init_schema()
 
     def init_schema(self) -> None:
         self._conn.execute(_CREATE_SNAPSHOTS)
