@@ -114,16 +114,18 @@ def mean_std(returns: list[float]) -> tuple[float, float]:
 
 
 def sharpe_annualized(returns: list[float]) -> float | None:
-    """Annualized Sharpe (rf = 0). None when the series has no variance."""
+    """Annualized Sharpe (rf = 0). None when the series has no usable variance."""
     mean, std = mean_std(returns)
-    if std == 0.0:
+    # Near-zero std: constant series can leave tiny float residue from sum()/n
+    # (e.g. sum([0.01]*100) is not exactly 1.0 on some platforms).
+    if std <= 1e-12:
         return None
     return mean / std * math.sqrt(TRADING_DAYS_PER_YEAR)
 
 
 def sharpe_per_period(returns: list[float]) -> float | None:
     mean, std = mean_std(returns)
-    if std == 0.0:
+    if std <= 1e-12:
         return None
     return mean / std
 
