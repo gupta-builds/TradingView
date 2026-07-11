@@ -44,12 +44,15 @@ def make_price_records(
     seed: int = 7,
     asset_type: str = "equity",
     exchange: str = "NASDAQ",
+    source: str = SYNTHETIC_SOURCE,
 ) -> list[OHLCVRecord]:
     """Seeded geometric random-walk daily bars, valid under OHLCV validation."""
     rng = random.Random(f"{symbol}:{seed}")
     dates = trading_days(end, sessions)
     retrieved_at = datetime.combine(end, time(23, 0), tzinfo=timezone.utc)
-    payload_hash = hashlib.sha256(f"{symbol}:{seed}:{sessions}".encode()).hexdigest()
+    payload_hash = hashlib.sha256(
+        f"{symbol}:{seed}:{sessions}:{source}".encode()
+    ).hexdigest()
 
     records: list[OHLCVRecord] = []
     close = base_price
@@ -75,7 +78,7 @@ def make_price_records(
                 dividend_cash=0.0,
                 price_adjustment=PriceAdjustment.SPLIT_DIVIDEND_ADJUSTED,
                 currency="USD",
-                source=SYNTHETIC_SOURCE,
+                source=source,
                 retrieved_at=retrieved_at,
                 data_as_of=trading_date,
                 raw_payload_hash=payload_hash,

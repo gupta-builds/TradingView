@@ -134,3 +134,20 @@ Short lessons only: corrections + confirmed approaches. Read at each work block.
   0 calendar mismatches, 0 split-residue hits, SEC quarterly depth to 2018–2019 for all 10
   equities. 472 tests passed (was 464). Phase 2b go/no-go is now GREEN — Fable F1–F3 may
   start; still did not touch gates/hook/universe or run the study itself.
+
+## Phase 2b promotion study (2026-07-11, Fable)
+
+- F1 seam is a keyword param all the way down (`--source` → `price_source` → `get_price_frame(source=...)`);
+  the mixed-source failure mode is loud, not silent — duplicate calendar dates trip StrategyReturns'
+  strictly-increasing-dates validator, which made the guard test easy to write (assert ValueError unfiltered,
+  bit-identical study filtered).
+- DuckDB reserves `rows` and `nulls` as bare column aliases — the solution design's V2 SQL needs `AS n_rows`
+  / `AS null_count` when run verbatim through the Python client.
+- The `--record-decision` pass re-runs the whole deterministic study, so it records a second identical
+  4-record gate batch; pass `--skip-paper` on that pass or the journal/holdings artifact is written twice.
+- Live result on real tiingo bars (N=1511, R=1258): 4/4 PASS at unchanged defaults — WF 5/5 windows
+  positive, pooled Sharpe 1.52; DSR 0.9947 with n_trials=1 (pure PSR, no deflation credit). Net +356.82%
+  vs VOO +87.10%; 0 cash sessions (SEC quarterly backfill fully prevented the cash-drag failure mode).
+  Decision recorded: promote → demo_eligible. One bull-heavy regime — evidence, not proof.
+- Holdings dump: `entry_type` on JournalEntry is a free string, so a new `"holdings"` entry type needed
+  zero model/store changes — smallest-diff wins.

@@ -15,6 +15,7 @@ Usage:
     source .venv/bin/activate
     python scripts/run_quality_momentum_study.py                # data/market.duckdb
     python scripts/run_quality_momentum_study.py --db path.duckdb
+    python scripts/run_quality_momentum_study.py --source tiingo
     python scripts/run_quality_momentum_study.py --record-decision --approver anant
 """
 
@@ -37,6 +38,7 @@ from research_data.brain import (
     resolve_hook,
 )
 from research_data.config import load_config
+from research_data.factors.momentum import MIN_SESSIONS
 from research_data.fundamentals.store import FundamentalsStore
 from research_data.gates import GateHarness
 from research_data.gates.metrics import (
@@ -44,7 +46,15 @@ from research_data.gates.metrics import (
     summarize,
     total_return,
 )
-from research_data.paper import ActionLabel, PaperEngine, PaperStore, ReplayRun, Thesis
+from research_data.paper import (
+    ActionLabel,
+    JournalEntry,
+    PaperEngine,
+    PaperMode,
+    PaperStore,
+    ReplayRun,
+    Thesis,
+)
 from research_data.read_api import PriceReadAPI
 from research_data.strategies.quality_momentum import (
     StrategyDataError,
@@ -74,6 +84,90 @@ CITATIONS = [
 def fail(message: str) -> None:
     print(f"STUDY ABORTED: {message}")
     sys.exit(1)
+
+
+#: Gate size minima in strategy-return sessions R = N - MIN_SESSIONS, derived
+#: from the (unchanged) gate defaults — see Docs/PHASE2B_SOLUTION_DESIGN.md §1.
+GATE_DEPTH_MINIMA = [
+    ("out_of_sample", 200, "70/30 split, both segments >= 60 returns"),
+    ("monte_carlo", 120, "min_periods=120"),
+    ("walk_forward", 882, "train 504 + test 126 + 2x126 steps (min_windows=3)"),
+    ("deflated_sharpe", 3, "t >= 3 returns"),
+]
+
+
+def print_depth_preflight(n_sessions: int) -> None:
+    """F2 — informational depth arithmetic before the gates run.
+
+    Names any gate that cannot pass at this panel depth. Purely informational:
+    the gates themselves still run and fail closed exactly as before.
+    """
+    r = n_sessions - MIN_SESSIONS
+    print()
+    print(
+        f"Depth preflight: N = {n_sessions} panel sessions -> "
+        f"R = N - {MIN_SESSIONS} = {r} strategy return sessions."
+    )
+    cannot_pass = []
+    for gate, minimum, rule in GATE_DEPTH_MINIMA:
+        verdict = "depth ok" if r >= minimum else "CANNOT PASS at this depth"
+        print(f"  {gate}: needs R >= {minimum} ({rule}) — {verdict}")
+        if r < minimum:
+            cannot_pass.append(gate)
+    if r >= 882:
+        windows = (r - 630) // 126 + 1
+        print(f"  walk-forward windows available at this depth: {windows}")
+    if cannot_pass:
+        print(
+            "  Under-depth gates will fail closed and stop the batch at: "
+            + ", ".join(cannot_pass)
+        )
+    else:
+        print("  All four gates are executable at this depth (pass not implied).")
+
+
+def cash_session_count(study) -> int:
+    """Return sessions accrued while the book held no names (exactly 0.0)."""
+    count = 0
+    holdings: list[str] = []
+    j = 0
+    for session_date in study.strategy.dates:
+        while j < len(study.rebalances) and study.rebalances[j].as_of < session_date:
+            holdings = study.rebalances[j].holdings
+            j += 1
+        if not holdings:
+            count += 1
+    return count
+
+
+def journal_holdings_dump(paper_store: PaperStore, spec, study) -> list[str]:
+    """F3 — persist every rebalance decision's holdings/weights/as_of in the
+    paper journal (research record only; no execution language)."""
+    entry_ids: list[str] = []
+    for record in study.rebalances:
+        if record.holdings:
+            weight = 1.0 / len(record.holdings)
+            weights = ", ".join(f"{s}={weight:.4f}" for s in record.holdings)
+            body = (
+                f"Rebalance holdings record for {SPEC_NAME} as of "
+                f"{record.as_of}: {weights} (equal weight)."
+            )
+        else:
+            body = (
+                f"Rebalance holdings record for {SPEC_NAME} as of "
+                f"{record.as_of}: no holdings — book in cash "
+                "(insufficient eligible cross-section; 0.0 return, nothing invented)."
+            )
+        entry = JournalEntry(
+            mode=PaperMode.REPLAY,
+            entry_type="holdings",
+            as_of=record.as_of,
+            body=body,
+            spec_id=spec.spec_id,
+        )
+        paper_store.add_journal_entry(entry)
+        entry_ids.append(entry.entry_id)
+    return entry_ids
 
 
 def load_fundamentals(store: FundamentalsStore, symbols: list[str]) -> dict:
@@ -132,7 +226,8 @@ def get_or_register_spec(brain: BrainStore, approver: str) -> StrategySpec:
 
 
 def run_paper_replay(
-    conn, price_api, spec, study, approver: str, end: date
+    conn, price_api, spec, study, approver: str, end: date,
+    price_source: str | None = None,
 ) -> list[str]:
     """Write the study-window replay artifact under standard paper rules."""
     paper_store = PaperStore(conn)
@@ -172,7 +267,7 @@ def run_paper_replay(
     paper_store.propose_thesis(thesis)
     paper_store.approve_thesis(thesis.thesis_id, approved_by=approver)
 
-    engine = PaperEngine(paper_store, price_api)
+    engine = PaperEngine(paper_store, price_api, price_source=price_source)
     written = engine.run_replay(
         ReplayRun(
             spec_id=spec.spec_id,
@@ -201,6 +296,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--db", default="data/market.duckdb", help="DuckDB path")
     parser.add_argument(
+        "--source",
+        default=None,
+        help="Restrict prices to one provider (daily_ohlcv.source). Required "
+        "once rows from a second provider exist — mixed-source rows duplicate "
+        "calendar dates. Default: no filter (single-source DB).",
+    )
+    parser.add_argument(
         "--approver",
         default="anant",
         help="Human identity recorded on approvals/decisions (default: anant)",
@@ -225,21 +327,28 @@ def main() -> None:
     universe = list(config.universe.symbols)
     benchmark = config.universe.default_benchmark
 
+    query = (
+        "SELECT COUNT(*), MIN(trading_date), MAX(trading_date) "
+        "FROM daily_ohlcv WHERE symbol = ?"
+    )
+    params = [benchmark]
+    if args.source:
+        query += " AND source = ?"
+        params.append(args.source)
     try:
-        row = conn.execute(
-            "SELECT COUNT(*), MIN(trading_date), MAX(trading_date) "
-            "FROM daily_ohlcv WHERE symbol = ?",
-            [benchmark],
-        ).fetchone()
+        row = conn.execute(query, params).fetchone()
     except duckdb.CatalogException:
         fail(f"{db_path} has no daily_ohlcv table — run init-db + ingestion first.")
     rows, start, end = row
     if not rows:
-        fail(f"no stored {benchmark} rows in {db_path} — ingest prices first.")
+        source_note = f" from source '{args.source}'" if args.source else ""
+        fail(f"no stored {benchmark} rows{source_note} in {db_path} — ingest prices first.")
     print(
         f"Universe: {len(universe)} symbols, benchmark {benchmark}; "
-        f"{rows} {benchmark} sessions stored [{start} → {end}]."
+        f"{rows} {benchmark} sessions stored [{start} → {end}]"
+        + (f"; price source filter: {args.source}." if args.source else ".")
     )
+    print_depth_preflight(rows)
 
     fundamentals_store = FundamentalsStore(conn)
     equities = [
@@ -264,6 +373,7 @@ def main() -> None:
         study = run_quality_momentum_study(
             spec.params, PriceReadAPI(conn), universe, start, end,
             benchmark_symbol=benchmark, fundamentals_snapshots=fundamentals,
+            price_source=args.source,
         )
     except StrategyDataError as e:
         fail(str(e))
@@ -288,6 +398,18 @@ def main() -> None:
         f"({DEFAULT_COST_BPS_PER_SIDE:.0f} bps/side), "
         f"{summary.trade_count} rebalance trades."
     )
+    total_turnover = sum(strategy.turnover)
+    cost_drag = total_turnover * DEFAULT_COST_BPS_PER_SIDE / 10_000.0
+    print(
+        f"Costs: total two-sided turnover {total_turnover:.2f} -> "
+        f"cumulative cost drag {cost_drag:.4%} of book."
+    )
+    cash_sessions = cash_session_count(study)
+    print(
+        f"Cash sessions: {cash_sessions} of {summary.periods} "
+        f"({cash_sessions / summary.periods:.1%}) accrued at exactly 0.0 "
+        "(no eligible cross-section in effect)."
+    )
     print(
         f"Strategy net: total {summary.total_return:+.2%}, "
         f"annualized {summary.annualized_return:+.2%}, "
@@ -297,6 +419,12 @@ def main() -> None:
     print(f"{benchmark} same window: total {benchmark_total:+.2%}.")
     latest = study.latest_holdings
     print(f"Latest holdings (equal weight): {', '.join(latest) if latest else 'cash'}.")
+    print()
+    print("Eligible cross-section per rebalance (as_of, eligible, holdings):")
+    for record in study.rebalances:
+        eligible_count = len(record.composite)
+        held = ", ".join(record.holdings) if record.holdings else "cash"
+        print(f"  {record.as_of}  eligible={eligible_count:2d}  {held}")
     print()
     print("Gate batch (fixed order, stops at first failure):")
     for result in outcome.results:
@@ -308,6 +436,39 @@ def main() -> None:
         if gate not in ran:
             print(f"  {gate}: NOT RUN (an earlier gate failed; order is fixed)")
     print(f"Recorded {len(outcome.test_run_ids)} TestRunRecords (trials={outcome.n_trials}).")
+
+    wf_result = next((r for r in outcome.results if r.gate == "walk_forward"), None)
+    if wf_result is not None and wf_result.outputs.get("windows"):
+        print()
+        print("Walk-forward test windows (net of costs):")
+        print("  window  test_start  test_return  test_sharpe  benchmark_return")
+        for k, window in enumerate(wf_result.outputs["windows"], start=1):
+            sharpe = window["test_sharpe"]
+            sharpe_text = f"{sharpe:+11.2f}" if sharpe is not None else "       n/a "
+            print(
+                f"  {k:6d}  {window['test_start_index']:10d}  "
+                f"{window['test_return']:+11.2%}  {sharpe_text}  "
+                f"{window['benchmark_return']:+16.2%}"
+            )
+        fraction = wf_result.outputs.get("fraction_positive")
+        pooled = wf_result.outputs.get("pooled_sharpe")
+        print(
+            f"  fraction_positive={fraction:.2f}, "
+            f"pooled_sharpe={pooled if pooled is None else round(pooled, 2)}."
+        )
+
+    dsr_result = next((r for r in outcome.results if r.gate == "deflated_sharpe"), None)
+    if dsr_result is not None:
+        out = dsr_result.outputs
+        print()
+        print("Deflated Sharpe intermediates:")
+        for key in (
+            "deflated_sharpe_probability", "sr_hat_per_period", "sr0_expected_max",
+            "n_trials", "variance_trial_sharpes", "skewness", "kurtosis",
+            "t_periods", "z_statistic", "reason",
+        ):
+            if key in out:
+                print(f"  {key}: {out[key]}")
 
     if args.record_decision:
         decision = record_gate_outcome_decision(
@@ -332,9 +493,19 @@ def main() -> None:
         print("Paper replay skipped (--skip-paper).")
     else:
         print()
-        journal_ids = run_paper_replay(
-            conn, PriceReadAPI(conn), spec, study, args.approver, end
+        paper_store = PaperStore(conn)
+        paper_store.init_schema()
+        holdings_ids = journal_holdings_dump(paper_store, spec, study)
+        cash_records = sum(1 for r in study.rebalances if not r.holdings)
+        print(
+            f"Journal holdings dump: {len(holdings_ids)} rebalance records "
+            f"({cash_records} in cash) persisted as 'holdings' entries."
         )
+        journal_ids = run_paper_replay(
+            conn, PriceReadAPI(conn), spec, study, args.approver, end,
+            price_source=args.source,
+        )
+        journal_ids = holdings_ids + journal_ids
     print()
     print(
         "Reminder: research desk output only — action vocabulary is "
