@@ -104,9 +104,21 @@ def parse_companyfacts(
                 collect(gaap[concept], field_name)
                 break
 
+    # dei:EntityCommonStockSharesOutstanding is tagged as of the filing's
+    # cover-page date, not the fiscal period end — it creates a distinct
+    # "period" for every 10-K/10-Q amendment that would otherwise dilute
+    # the most-recent-`max_periods` window with dates that carry no
+    # statement data (measured: ~40% of AAPL's raw period count). Attach it
+    # only to periods that already have real statement data.
+    statement_period_keys = set(periods.keys())
     shares_concept = dei.get("EntityCommonStockSharesOutstanding")
     if shares_concept:
         collect(shares_concept, "shares_outstanding")
+        periods = {
+            key: fields
+            for key, fields in periods.items()
+            if key in statement_period_keys
+        }
 
     snapshots: list[FundamentalsSnapshot] = []
     for (end, period_type), fields in sorted(periods.items())[-max_periods:]:
@@ -185,13 +197,20 @@ class SECEdgarClient:
             raise SECEdgarError(f"No CIK found for symbol {symbol} ({sec_ticker})")
         return cik
 
-    def fetch_companyfacts(self, symbol: str) -> FundamentalsFetchResult:
-        """Fetch and parse companyfacts for one symbol."""
+    def fetch_companyfacts(self, symbol: str, max_periods: int = 12) -> FundamentalsFetchResult:
+        """Fetch and parse companyfacts for one symbol.
+
+        ``max_periods`` caps the combined quarterly+annual periods kept
+        (most-recent-first); the default of 12 matches the original quality
+        factor's short lookback. Phase 2b history-depth backfill passes a
+        higher value so quarterly coverage reaches back to match a deepened
+        price window (see Docs/PHASE2B_SOLUTION_DESIGN.md §1 V5).
+        """
         retrieved_at = datetime.now(timezone.utc)
         cik = self.get_cik(symbol)
         url = COMPANYFACTS_URL.format(cik=cik)
         raw = self._get(url)
-        snapshots = parse_companyfacts(symbol, raw, retrieved_at)
+        snapshots = parse_companyfacts(symbol, raw, retrieved_at, max_periods=max_periods)
         warnings = []
         if not snapshots:
             warnings.append(
