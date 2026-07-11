@@ -147,6 +147,7 @@ def run_quality_momentum_study(
     end: date,
     benchmark_symbol: str = "VOO",
     fundamentals_snapshots: dict[str, list[FundamentalsSnapshot]] | None = None,
+    price_source: str | None = None,
 ) -> QualityMomentumStudy:
     """Run the tilt over stored prices and return series + audit trail.
 
@@ -154,6 +155,11 @@ def run_quality_momentum_study(
     caller (study runner or test) loads them — this module never fetches.
     Symbols absent from the map (all ETFs) can never satisfy the quality
     requirement and are skipped at every rebalance.
+
+    ``price_source`` restricts the price frame to one provider. The
+    ``daily_ohlcv`` PK includes ``source``, so mixed-source rows for the same
+    symbol/date would duplicate calendar dates; with the benchmark affected
+    that corrupts every series. Mandatory once a second provider's rows exist.
     """
     top_k = int(params.get("top_k", DEFAULT_TOP_K))
     rebalance_every = int(
@@ -168,7 +174,8 @@ def run_quality_momentum_study(
 
     symbols = [s for s in universe if s != benchmark_symbol]
     records = price_api.get_price_frame(
-        symbols=symbols + [benchmark_symbol], start=start, end=end
+        symbols=symbols + [benchmark_symbol], start=start, end=end,
+        source=price_source,
     )
 
     closes: dict[str, list[float]] = {s: [] for s in symbols + [benchmark_symbol]}
@@ -262,6 +269,7 @@ def run_quality_momentum_study(
             "fundamentals_lag_days": lag_days,
             "momentum_weight": MOMENTUM_WEIGHT,
             "quality_weight": QUALITY_WEIGHT,
+            "price_source": price_source,
             "formulas": dict(FORMULAS),
         },
     )
@@ -275,6 +283,7 @@ def quality_momentum_tilt_hook(
     end: date,
     benchmark_symbol: str = "VOO",
     fundamentals_snapshots: dict[str, list[FundamentalsSnapshot]] | None = None,
+    price_source: str | None = None,
 ) -> tuple[StrategyReturns, list[float]]:
     """Spec ``hook_ref`` entry point — gate-harness-shaped return value.
 
@@ -288,6 +297,7 @@ def quality_momentum_tilt_hook(
         end,
         benchmark_symbol=benchmark_symbol,
         fundamentals_snapshots=fundamentals_snapshots,
+        price_source=price_source,
     )
     return study.strategy, study.benchmark_returns
 

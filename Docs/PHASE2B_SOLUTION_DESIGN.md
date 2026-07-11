@@ -176,24 +176,34 @@ demo-eligibility, journal entry ids, F2/F3 additions.
 | Fundamentals thin in early years despite deep prices | Early rebalances hold cash (0.0, honest) | Expect WF drag (zeros are not > 0). Preflight V5 exists to prevent starting in this state. |
 | Provider can’t reach 1135 sessions | Study still runs; preflight names the gate that must fail; batch fails closed | Same as today, at greater depth. No synthetic filler, ever. |
 
-## 5. Definition of Done (for the future implementer)
+## 5. Definition of Done (measured 2026-07-11, branch `feat/phase2b-promotion-study`)
 
-- [ ] Cursor’s V1–V5 all pass at ≥ 1135 sessions (target ≥ 1513) with
+- [x] Cursor’s V1–V5 all pass at ≥ 1135 sessions (target ≥ 1513) with
       matching fundamentals depth — **before any Fable code is written**.
-- [ ] F1 source filter implemented + unit test (mixed-source fixture proves
-      the guard; single-source path unchanged).
-- [ ] F2 depth preflight prints the R-vs-gate-minima table.
-- [ ] F3 report additions present in stdout.
-- [ ] `pytest -q` green offline; prefix-invariance and thin-history
+      Measured: 14 × 1511 sessions (2020-07-06 → 2026-07-10), single source
+      `tiingo`, 0 nulls/mismatches/split residue; SEC quarterly depth to
+      2018–2019 for all 10 equities.
+- [x] F1 source filter implemented + unit test (mixed-source fixture proves
+      the guard; single-source path unchanged) —
+      `tests/test_strategy_quality_momentum.py::test_price_source_filter_guards_against_mixed_sources`.
+- [x] F2 depth preflight prints the R-vs-gate-minima table. Measured run:
+      N=1511 → R=1258, all four gates executable, 5 WF windows.
+- [x] F3 report additions present in stdout (per-window WF table, DSR
+      intermediates, cash-session count, eligible cross-section per
+      rebalance, cost drag) plus a per-rebalance `holdings` journal dump.
+- [x] `pytest -q` green offline; prefix-invariance and thin-history
       fail-closed tests untouched and passing; no gate constant differs from
       this document.
-- [ ] One live promotion-study artifact exists: 4 TestRunRecords (or a
-      shorter honestly-failed batch), replay journal entries with
-      `voo_return_same_period` on every exit (or review entries), stdout
-      report saved into the PR/vault note.
-- [ ] Promotion state reflects a recorded `anant` decision — DEMO_ELIGIBLE
-      only on 4/4 plus human agreement; HOLD otherwise.
-- [ ] Guardrail sweep clean (no execution language in new strings; no new
+- [x] One live promotion-study artifact exists: 4 TestRunRecords per batch
+      (two identical deterministic batches recorded — study pass and
+      decision pass), replay journal entries with `voo_return_same_period`
+      on every exit, 60 holdings entries, stdout report saved in
+      `Docs/PHASE2B_PROMOTION_STUDY_2026-07-11.md`.
+- [x] Promotion state reflects a recorded `anant` decision — measured
+      outcome was the 4/4-and-≥-VOO cell (net +356.82% vs VOO +87.10%), so
+      **promote (unproven → demo_eligible)** was recorded
+      (decision `6b46e5fb-1674-45ce-9020-016c46b9e01b`).
+- [x] Guardrail sweep clean (no execution language in new strings; no new
       dependencies; Kronos untouched).
 
 ## 6. Explicit split

@@ -236,6 +236,70 @@ def test_benchmark_history_below_momentum_window_raises() -> None:
         )
 
 
+def test_price_source_filter_guards_against_mixed_sources() -> None:
+    """daily_ohlcv's PK includes source: a second provider's rows for the same
+    symbol/dates duplicate calendar dates. Unfiltered, the study corrupts (and
+    fails loudly); with price_source it reproduces the single-source result."""
+    symbols = ["VOO", "AAPL", "MSFT", "AMZN"]
+    conn = _build_db(symbols, 400)
+    price_api = PriceReadAPI(conn)
+    dates = trading_days(AS_OF, 400)
+    baseline = run_quality_momentum_study(
+        PARAMS, price_api, symbols, dates[0], AS_OF,
+        fundamentals_snapshots=_fundamentals(AS_OF),
+    )
+
+    # Single-source path is unchanged by the filter itself.
+    filtered_clean = run_quality_momentum_study(
+        PARAMS, price_api, symbols, dates[0], AS_OF,
+        fundamentals_snapshots=_fundamentals(AS_OF),
+        price_source="synthetic_fixture",
+    )
+    assert filtered_clean.strategy == baseline.strategy
+    assert filtered_clean.benchmark_returns == baseline.benchmark_returns
+
+    # Contaminate: the last 300 sessions again from a second provider.
+    contaminant = []
+    for symbol in symbols:
+        base, drift, vol, asset_type, exchange = PRICE_PROFILES[symbol]
+        contaminant += make_price_records(
+            symbol, end=AS_OF, sessions=300, base_price=base * 1.5,
+            daily_drift=drift, daily_vol=vol, asset_type=asset_type,
+            exchange=exchange, seed=99, source="other_fixture",
+        )
+    batch_insert_ohlcv(conn, contaminant)
+
+    # Unfiltered on the mixed table: duplicate calendar dates must fail
+    # loudly (time order is a guardrail), never silently blend providers.
+    with pytest.raises(ValueError, match="strictly increasing"):
+        run_quality_momentum_study(
+            PARAMS, price_api, symbols, dates[0], AS_OF,
+            fundamentals_snapshots=_fundamentals(AS_OF),
+        )
+
+    # The filter restores the exact single-source study through both entry
+    # points (study and spec hook).
+    filtered = run_quality_momentum_study(
+        PARAMS, price_api, symbols, dates[0], AS_OF,
+        fundamentals_snapshots=_fundamentals(AS_OF),
+        price_source="synthetic_fixture",
+    )
+    assert filtered.strategy == baseline.strategy
+    assert filtered.benchmark_returns == baseline.benchmark_returns
+    assert [r.holdings for r in filtered.rebalances] == [
+        r.holdings for r in baseline.rebalances
+    ]
+    assert filtered.dropped_symbols == baseline.dropped_symbols
+
+    hook_strategy, hook_benchmark = quality_momentum_tilt_hook(
+        PARAMS, price_api, symbols, dates[0], AS_OF,
+        fundamentals_snapshots=_fundamentals(AS_OF),
+        price_source="synthetic_fixture",
+    )
+    assert hook_strategy == baseline.strategy
+    assert hook_benchmark == baseline.benchmark_returns
+
+
 def test_cross_section_of_one_holds_cash() -> None:
     """With fundamentals for a single name there is no cross-section: the
     book stays in cash at exactly 0.0 — no rank is invented for one symbol."""
