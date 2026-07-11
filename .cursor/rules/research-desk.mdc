@@ -1,0 +1,31 @@
+---
+description: Non-negotiable TradingView / research_data project law — always apply
+alwaysApply: true
+---
+
+# research_data desk — always-on rules
+
+This repo is a **personal US stocks/ETFs research desk** (`research_data`). Folder name `tradingview` is historical only — not affiliated with TradingView.com.
+
+## Settled product law
+- Personal-only; never sold; no auth/tenancy.
+- Stocks/ETFs only. Zero Kalshi/Polymarket/PM code or schema.
+- Python owns facts/factors/tests/paper fills. AI proposes/explains from evidence only — never invents numbers.
+- Action vocabulary only: `WATCH | HOLD | ACCUMULATE | REDUCE | AVOID | INSUFFICIENT_DATA`.
+- No execution language: `BUY`, `SELL`, "guaranteed", "risk-free" (except guardrail enforcement strings that assert against those tokens).
+- Four gates fixed order: OOS → Monte Carlo → walk-forward → deflated Sharpe. Literature defaults. Never loosen to force a live pass.
+- Kronos: `kronos_reserved.py` only — no inference until RankIC validation session.
+- Human approver identity: `anant`.
+- Universe locked at 14 symbols (`BRKB` letters-only).
+
+## Engineering law
+- Offline CI only: no network in pytest. Live scripts under `scripts/` are separate.
+- Branch off `main` → PR → green CI. See `Docs/GITHUB_WORKFLOW.md`.
+- Do not redesign working ingestion spine drive-by; fix only real bugs hit by the current slice.
+- Vault SoT: `Session Findings — Post Base (2026-07-11)` when present, else `Session Findings — Cursor Alignment Pass (2026-07-10)`.
+- Architecture mirror: `Docs/YEAR_AHEAD_BASE.md`. Phase 2 pack: `Docs/PHASE2_STRATEGY_PACK.md`. History depth: `Docs/HISTORY_DEPTH.md`.
+
+## Before claiming done
+- Run `pytest -q` offline.
+- Ground progress claims in tool output from this session.
+- Prefer smallest diff that fully solves the task.
