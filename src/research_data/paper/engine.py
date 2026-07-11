@@ -16,6 +16,7 @@ journaled decisions, not entries.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date
 
 from research_data.models import OHLCVRecord
@@ -50,12 +51,15 @@ class PaperEngine:
         benchmark_symbol: str = "VOO",
         book_notional: float = DEFAULT_BOOK_NOTIONAL,
         price_source: str | None = None,
+        on_lesson_journaled: Callable[[JournalEntry], None] | None = None,
     ) -> None:
         self._store = store
         self._price_api = price_api
         self._benchmark_symbol = benchmark_symbol
         self._book_notional = book_notional
         self._price_source = price_source
+        # Injected by CLI (has BrainStore); paper/ never imports BrainStore.
+        self._on_lesson_journaled = on_lesson_journaled
 
     # -- timed auto-entry ---------------------------------------------------
 
@@ -258,6 +262,11 @@ class PaperEngine:
 
     def _journal(self, entry: JournalEntry) -> JournalEntry:
         self._store.add_journal_entry(entry)
+        if (
+            self._on_lesson_journaled is not None
+            and entry.entry_type in {"lesson", "exit"}
+        ):
+            self._on_lesson_journaled(entry)
         return entry
 
     def _price_records(self, symbol: str, start: date, end: date) -> list[OHLCVRecord]:

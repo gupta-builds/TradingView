@@ -226,8 +226,16 @@ def get_or_register_spec(brain: BrainStore, approver: str) -> StrategySpec:
 
 
 def run_paper_replay(
-    conn, price_api, spec, study, approver: str, end: date,
+    conn,
+    price_api,
+    spec,
+    study,
+    approver: str,
+    end: date,
     price_source: str | None = None,
+    *,
+    brain: BrainStore | None = None,
+    cite_lesson: bool = True,
 ) -> list[str]:
     """Write the study-window replay artifact under standard paper rules."""
     paper_store = PaperStore(conn)
@@ -267,7 +275,18 @@ def run_paper_replay(
     paper_store.propose_thesis(thesis)
     paper_store.approve_thesis(thesis.thesis_id, approved_by=approver)
 
-    engine = PaperEngine(paper_store, price_api, price_source=price_source)
+    on_lesson = None
+    if cite_lesson and brain is not None:
+        from research_data.brain.citations import make_lesson_journal_callback
+
+        on_lesson = make_lesson_journal_callback(brain)
+
+    engine = PaperEngine(
+        paper_store,
+        price_api,
+        price_source=price_source,
+        on_lesson_journaled=on_lesson,
+    )
     written = engine.run_replay(
         ReplayRun(
             spec_id=spec.spec_id,
@@ -315,6 +334,12 @@ def main() -> None:
     )
     parser.add_argument(
         "--skip-paper", action="store_true", help="Skip the paper replay artifact."
+    )
+    parser.add_argument(
+        "--no-cite-lesson",
+        action="store_true",
+        help="Opt out of journal→Citation upsert on lesson/exit "
+        "(default is on for real runs; use for synthetic debugging).",
     )
     args = parser.parse_args()
 
@@ -504,6 +529,8 @@ def main() -> None:
         journal_ids = run_paper_replay(
             conn, PriceReadAPI(conn), spec, study, args.approver, end,
             price_source=args.source,
+            brain=brain,
+            cite_lesson=not args.no_cite_lesson,
         )
         journal_ids = holdings_ids + journal_ids
     print()

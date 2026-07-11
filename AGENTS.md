@@ -41,5 +41,6 @@ After large landings: `/graphify --update`. Outputs: `graphify-out/GRAPH_REPORT.
 `.claude/` remains Claude Code tooling. Cursor mirrors: `.cursor/rules/`, `.cursor/agents/`. Keep guardrails in sync.
 
 ## Current phase
-- **Done:** year-ahead base; Phase 2a quality+momentum pack; Phase 2b analysis docs; `.cursor` Phase 2b rules; Tiingo client + full re-backfill (N=1511, 2020-07-06→today) + SEC quarterly depth to 2018–2019; V1–V5 all GREEN (see `Docs/HISTORY_DEPTH.md`).
-- **Next Fable one-shot:** go/no-go is green — F1 → F2 → F3 → promotion study may start.
+- **Done:** year-ahead base; Phase 2a/2b (`demo_eligible` on tiingo); Cursor Phase 3 AI hub prereqs + questionnaire locks.
+- **Next:** paste **`Docs/FABLE5_PHASE3_AI_BRAIN_PROMPT.md`** into Fable 5 (one-shot LLM seam + NVDA smoke). Human opens PR.
+- Vault SoT: `Session Findings — AI Brain Hub (2026-07-12)`; full Q&A: `Session Recap — AI Brain Hub Questionnaire (2026-07-12)`.

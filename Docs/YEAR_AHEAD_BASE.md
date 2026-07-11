@@ -56,9 +56,13 @@ src/research_data/
   providers/           # csv_fixture (offline default), polygon.py (rate-limited live client)
   brain/               # THE X-FACTOR — closed research loop
     models.py          #   Citation, StrategySpec (proposed|approved|rejected|retired), TestRunRecord,
-                       #   PromotionDecision, JournalLink
+                       #   PromotionDecision, JournalLink; params_delta + parent_spec_id (provenance)
     store.py           #   BrainStore: DuckDB persistence + typed APIs (approve requires a human identity)
     loop.py            #   Loop rules: legal state transitions, gate-order enforcement, eligibility
+    citations.py       #   Deterministic cite-add / vault / journal_lesson ingest (no LLM)
+  cards/               # EvidenceCard + CriticReview (no LLM); allowlist + gate projection + validators
+  agents/              # AI harness boundary only — llm_client (fixture; Fable adds provider SDK),
+                       # assemble, runner, analyst/critic prompt modules
   factors/             # deterministic scorers → structured score packets
     packets.py         #   ScorePacket + sub-score models (formula, inputs, as_of on every score)
     momentum.py        #   12-1 month total-return rank in universe
@@ -83,10 +87,10 @@ src/research_data/
     quality_momentum.py#   50/50 momentum 12-1 + quality_fcf composite tilt, top-K equal weight
                        #   (Docs/PHASE2_STRATEGY_PACK.md; hook: quality_momentum_tilt_hook)
   paper/               # paper-test contracts (UI thin; storage/APIs real)
-    models.py          #   Thesis (pre-approval required), PaperFill (open|close — no BUY/SELL words),
-                       #   JournalEntry (voo_return_same_period required on close), ReplayRun
+    models.py          #   Thesis (source_card_id + spec_id), PaperFill, JournalEntry, ReplayRun
     store.py           #   PaperStore: DuckDB persistence
-    engine.py          #   timed auto-entry inside approved windows; replay writes journal as-if-time-passed
+    engine.py          #   timed auto-entry; on_lesson_journaled callback (cite lessons)
+  cli.py, cli_desk.py, __main__.py  # Typer: ingest + brain/cite/analyze desk commands
 scripts/
   run_quality_momentum_study.py  # manual live study: real DuckDB → hook → gates → brain + paper artifacts
 tests/                 # offline by default; property tests prefixed test_property_
@@ -113,7 +117,9 @@ provider APIs → raw payloads (disk + DuckDB, secrets redacted)
 brain: citation → proposed spec → human approve → Python hook (strategy returns)
   → gates harness (OOS → MC → WF → DSR, vs VOO, costs) → promote/demote decision
   → paper: approved thesis → timed auto-entry (replay or live book) → journal (+VOO same-period)
-  → journal lesson feeds the next proposal        [AI agents consume packets only — later phase]
+  → journal lesson feeds the next proposal via Citation ingest
+  → AI agents (Phase 3): assemble packets → analyst EvidenceCard → critic CriticReview
+    (LLM only under agents/; human anant still approves/decides)
 ```
 
 ## The four gates (fixed order, literature defaults)

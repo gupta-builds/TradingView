@@ -59,6 +59,7 @@ class Thesis(BaseModel):
 
     thesis_id: str = Field(default_factory=_new_id)
     spec_id: str | None = None  # strategy spec this thesis came from, if any
+    source_card_id: str | None = None  # EvidenceCard that informed this thesis
     symbol: str
     action: ActionLabel
     thesis_text: str

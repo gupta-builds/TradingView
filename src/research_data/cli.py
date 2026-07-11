@@ -38,6 +38,12 @@ from research_data.storage import (
     write_raw_payload,
 )
 
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_DEFAULT_DB = str(_PROJECT_ROOT / "data" / "market.duckdb")
+_DEFAULT_DATA_DIR = str(_PROJECT_ROOT / "data")
+
+from research_data.cli_desk import register_desk_commands
+
 app = typer.Typer(
     name="research-data",
     help=(
@@ -47,6 +53,8 @@ app = typer.Typer(
     add_completion=False,
     no_args_is_help=True,
 )
+
+register_desk_commands(app, default_db=_DEFAULT_DB, project_root=_PROJECT_ROOT)
 
 
 def _parse_symbols(raw: list[str] | None) -> list[str] | None:
@@ -59,10 +67,6 @@ def _parse_symbols(raw: list[str] | None) -> list[str] | None:
             if part:
                 out.append(part.upper())
     return out or None
-
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-_DEFAULT_DB = str(_PROJECT_ROOT / "data" / "market.duckdb")
-_DEFAULT_DATA_DIR = str(_PROJECT_ROOT / "data")
 
 _EXECUTION_PATTERN = re.compile(r"\b(BUY NOW|SELL NOW|BUY|SELL|HOLD)\b", re.IGNORECASE)
 

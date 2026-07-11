@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS brain_strategy_specs (
     citation_ids JSON NOT NULL,
     factor_dependencies JSON NOT NULL,
     params JSON NOT NULL,
+    params_delta JSON,
+    parent_spec_id VARCHAR,
     hook_ref VARCHAR,
     created_at TIMESTAMP NOT NULL,
     approved_by VARCHAR,
@@ -188,14 +190,28 @@ class BrainStore:
             )
         for citation_id in spec.citation_ids:
             # A proposal must cite research that actually exists in the store.
-            self.get_citation(citation_id)
+            citation = self.get_citation(citation_id)
+            if not citation.claims:
+                raise BrainStoreError(
+                    f"Citation {citation_id} has empty claims; "
+                    "non-empty claims required when assembling evidence_citation_ids "
+                    "for a PROPOSED StrategySpec"
+                )
+        if spec.parent_spec_id is not None:
+            self.get_spec(spec.parent_spec_id)
+        if spec.hook_ref:
+            # Fail-closed early (D2): resolve at propose-time, not only approve.
+            from research_data.brain.loop import resolve_hook
+
+            resolve_hook(spec.hook_ref)
         self._conn.execute(
             """
             INSERT INTO brain_strategy_specs (
                 spec_id, name, version, status, promotion_state, description,
                 proposed_by, citation_ids, factor_dependencies, params,
-                hook_ref, created_at, approved_by, approved_at, status_reason
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                params_delta, parent_spec_id, hook_ref, created_at,
+                approved_by, approved_at, status_reason
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 spec.spec_id,
@@ -208,6 +224,8 @@ class BrainStore:
                 json.dumps(spec.citation_ids),
                 json.dumps(spec.factor_dependencies),
                 json.dumps(spec.params),
+                json.dumps(spec.params_delta) if spec.params_delta is not None else None,
+                spec.parent_spec_id,
                 spec.hook_ref,
                 _to_db_ts(spec.created_at),
                 spec.approved_by,
@@ -470,6 +488,29 @@ def _row_to_citation(row: tuple) -> Citation:
 
 
 def _row_to_spec(row: tuple) -> StrategySpec:
+    # Columns: 0-9 classic, then params_delta, parent_spec_id, hook_ref, …
+    # Support both pre-D2 (15 cols) and post-D2 (17 cols) row shapes for
+    # in-memory tests that rebuild schema; live DBs rebuild per desk policy.
+    if len(row) >= 17:
+        return StrategySpec(
+            spec_id=row[0],
+            name=row[1],
+            version=row[2],
+            status=SpecStatus(row[3]),
+            promotion_state=PromotionState(row[4]),
+            description=row[5],
+            proposed_by=row[6],
+            citation_ids=_loads(row[7]),
+            factor_dependencies=_loads(row[8]),
+            params=_loads(row[9]),
+            params_delta=_loads(row[10]) if row[10] is not None else None,
+            parent_spec_id=row[11],
+            hook_ref=row[12],
+            created_at=_as_utc(row[13]),
+            approved_by=row[14],
+            approved_at=_as_utc(row[15]),
+            status_reason=row[16],
+        )
     return StrategySpec(
         spec_id=row[0],
         name=row[1],

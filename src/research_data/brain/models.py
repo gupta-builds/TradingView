@@ -136,6 +136,10 @@ class StrategySpec(BaseModel):
     citation_ids: list[str] = Field(default_factory=list)
     factor_dependencies: list[str] = Field(default_factory=list)
     params: dict[str, Any] = Field(default_factory=dict)
+    #: Fully-resolved params at propose-time; runtime never walks parent chain.
+    params_delta: dict[str, Any] | None = None
+    #: Provenance only — parent of a param-delta proposal.
+    parent_spec_id: str | None = None
     hook_ref: str | None = None
     created_at: datetime = Field(default_factory=_utcnow)
     approved_by: str | None = None

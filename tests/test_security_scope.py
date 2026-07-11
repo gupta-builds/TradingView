@@ -65,15 +65,52 @@ class TestSecurityAndScope:
     def test_no_execution_language_in_cli_help(self):
         result = runner.invoke(app, ["--help"])
         assert result.exit_code == 0
-        assert _EXEC_RE.search(result.output) is None
-        for cmd in ("init-db", "ingest-prices", "audit-prices", "benchmark"):
+        # Ingestion commands: keep historical BUY/SELL/HOLD ban.
+        ingest_cmds = ("init-db", "ingest-prices", "audit-prices", "benchmark")
+        for cmd in ingest_cmds:
             r = runner.invoke(app, [cmd, "--help"])
             assert r.exit_code == 0, r.output
             assert _EXEC_RE.search(r.output) is None
+        # Desk commands (Phase 3): HOLD is a legal ActionLabel — ban BUY/SELL only.
+        desk_ban = re.compile(r"\b(BUY NOW|SELL NOW|BUY|SELL)\b", re.IGNORECASE)
+        for cmd in (
+            "propose",
+            "approve",
+            "reject",
+            "decide",
+            "analyze-symbol",
+            "critique-spec",
+            "cite-add",
+        ):
+            r = runner.invoke(app, [cmd, "--help"])
+            assert r.exit_code == 0, r.output
+            assert desk_ban.search(r.output) is None
 
     def test_no_predictive_language_in_cli_help(self):
         result = runner.invoke(app, ["--help"])
         assert _PREDICTIVE_RE.search(result.output) is None
+
+    def test_no_llm_imports_outside_agents_package(self):
+        """Extended C4 boundary (Phase 3)."""
+        llm_patterns = [
+            re.compile(r"openai", re.I),
+            re.compile(r"anthropic", re.I),
+            re.compile(r"langchain", re.I),
+            re.compile(r"litellm", re.I),
+            re.compile(r"instructor", re.I),
+            re.compile(r"pydantic_ai", re.I),
+            re.compile(r"google\.generativeai", re.I),
+        ]
+        offenders = []
+        for path in (PROJECT_ROOT / "src" / "research_data").rglob("*.py"):
+            rel = path.relative_to(PROJECT_ROOT / "src" / "research_data")
+            if rel.parts and rel.parts[0] == "agents":
+                continue
+            text = path.read_text(encoding="utf-8")
+            for pat in llm_patterns:
+                if pat.search(text):
+                    offenders.append(f"{rel}: {pat.pattern}")
+        assert offenders == []
 
     def test_no_broker_sdk_in_dependencies(self):
         pyproject = (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")

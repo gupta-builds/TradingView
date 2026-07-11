@@ -41,6 +41,7 @@ _CREATE_THESES = """\
 CREATE TABLE IF NOT EXISTS paper_theses (
     thesis_id VARCHAR PRIMARY KEY,
     spec_id VARCHAR,
+    source_card_id VARCHAR,
     symbol VARCHAR NOT NULL,
     action VARCHAR NOT NULL,
     thesis_text VARCHAR NOT NULL,
@@ -122,16 +123,17 @@ class PaperStore:
         self._conn.execute(
             """
             INSERT INTO paper_theses (
-                thesis_id, spec_id, symbol, action, thesis_text,
+                thesis_id, spec_id, source_card_id, symbol, action, thesis_text,
                 invalidation_conditions, size_fraction,
                 entry_window_start, entry_window_end, entry_rule,
                 status, proposed_by, approved_by, approved_at,
                 next_review_date, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 thesis.thesis_id,
                 thesis.spec_id,
+                thesis.source_card_id,
                 thesis.symbol,
                 thesis.action.value,
                 thesis.thesis_text,
@@ -277,6 +279,14 @@ class PaperStore:
         )
         return entry.entry_id
 
+    def get_journal_entry(self, entry_id: str) -> JournalEntry:
+        row = self._conn.execute(
+            "SELECT * FROM paper_journal_entries WHERE entry_id = ?", [entry_id]
+        ).fetchone()
+        if row is None:
+            raise PaperStoreError(f"Unknown journal entry_id: {entry_id}")
+        return _row_to_journal(row)
+
     def list_journal_entries(
         self,
         mode: PaperMode | None = None,
@@ -362,6 +372,27 @@ def _loads(value):
 
 
 def _row_to_thesis(row: tuple) -> Thesis:
+    # Post-E4: source_card_id at index 2 (17 cols). Pre-E4: 16 cols without it.
+    if len(row) >= 17:
+        return Thesis(
+            thesis_id=row[0],
+            spec_id=row[1],
+            source_card_id=row[2],
+            symbol=row[3],
+            action=ActionLabel(row[4]),
+            thesis_text=row[5],
+            invalidation_conditions=_loads(row[6]),
+            size_fraction=row[7],
+            entry_window_start=row[8],
+            entry_window_end=row[9],
+            entry_rule=_loads(row[10]),
+            status=ThesisStatus(row[11]),
+            proposed_by=row[12],
+            approved_by=row[13],
+            approved_at=_as_utc(row[14]),
+            next_review_date=row[15],
+            created_at=_as_utc(row[16]),
+        )
     return Thesis(
         thesis_id=row[0],
         spec_id=row[1],
