@@ -94,3 +94,43 @@ Short lessons only: corrections + confirmed approaches. Read at each work block.
 - Default WF still needs ≥ ~1135 sessions; Phase 2b blocked until Starter+ upgrade.
 - Do not loosen gate constants. Use `scripts/deepen_history.py` after upgrade.
 - Graphify rebuilt (1844 nodes). Vault SoT: Session Findings — Post Base (2026-07-11).
+
+## Go/no-go V1–V5 chore (2026-07-11, Cursor)
+
+- Re-probed both tiers (`--start-date 2022-01-02` and `2020-07-06`): both truncate to the
+  same first bar 2024-07-11 / 501 bars as the prior attempt — key is still Massive Basic,
+  no upgrade detected. Stopped per solution-design §2 stop condition; did not ingest,
+  did not touch SEC backfill, did not run the study.
+- Measured V1–V5 read-only against the current 501-session DB: V2 (single source,
+  `polygon`/`split_dividend_adjusted`, 0 nulls), V3 (0 calendar mismatches vs VOO), and V4
+  (0 split-residue hits >35%) all **pass already** and are depth-independent — they will
+  keep passing once more same-source rows are appended. V1 (n=501 < 1135) and V5 (earliest
+  quarterly `fiscal_period_end` 2023-12-31 → 2025-04-27, 10–14 quarters vs ~20–23 needed)
+  are the two real RED items, both gated on provider depth (price rows unlock later SEC
+  quarters implicitly needing the same backfill window).
+- Next action is a human decision (Massive plan upgrade or explicit Tiingo-client approval),
+  not more Cursor automation — do not re-run probes speculatively; they cost nothing but the
+  bottleneck is the plan, not the script.
+
+## Tiingo switch resolves V1/V5 (2026-07-11, Cursor)
+
+- User added `TIINGO_API_KEY` and explicitly ordered switching to Tiingo instead of a Massive
+  upgrade. `config/providers.toml` already had a `tiingo` entry and `providers/base.py`
+  already dispatched to `providers.tiingo.TiingoProvider` — only the client module itself was
+  missing. Wrote it mirroring `polygon.py`'s contract; auth via `Authorization: Token <key>`
+  header (never the URL), so the key never touches `request_url`, raw payloads, or stdout.
+- Live probe cleared the **recommended** tier (`--start-date 2020-07-06`) on the first try:
+  1511 bars, no truncation — no need to fall back to the 2022-01-02 minimum.
+- Mixing two sources in `daily_ohlcv` was a stated risk (PK includes `source`) — purged all
+  7014 existing `polygon` rows (`scripts/rebuild_price_source.py`, dry-run then `--confirm`)
+  before backfilling the full window fresh from Tiingo, so the table stays single-source by
+  construction rather than needing the F1 guard early.
+- Found and fixed a real bug in `fundamentals/sec.py::parse_companyfacts`: SEC's
+  `dei:EntityCommonStockSharesOutstanding` is tagged on the filing's cover-page date, not the
+  fiscal period end — for AAPL this created 50 of 123 "quarter" periods with zero statement
+  data, diluting the most-recent-`max_periods` tail window so raising `max_periods` alone
+  couldn't reach 2020. Filtered cover-date-only periods out before slicing; 0 test regression.
+- Result: V1–V5 all GREEN. N=1511/symbol (2020-07-06→2026-07-10), single source, 0 nulls,
+  0 calendar mismatches, 0 split-residue hits, SEC quarterly depth to 2018–2019 for all 10
+  equities. 472 tests passed (was 464). Phase 2b go/no-go is now GREEN — Fable F1–F3 may
+  start; still did not touch gates/hook/universe or run the study itself.

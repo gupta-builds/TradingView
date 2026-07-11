@@ -19,7 +19,7 @@ Personal AI market research desk (`research_data`). Not a broker, not TradingVie
 | # | Check | Owner | Pass criterion |
 |---|---|---|---|
 | 0 | Pack branch / PR #1 | Human | Phase 2a CI green; merge when ready (separate from 2b) |
-| 1 | Provider depth | Human + Cursor | Massive Starter (min N≥1135) or Developer (rec N≥1513); or Tiingo client for min only |
+| 1 | Provider depth | Human + Cursor | **Resolved 2026-07-11: Tiingo** (live probe reached recommended tier, N=1511 from 2020-07-06 — deeper than the registry's assumed 5.0y minimum-only estimate) |
 | 2 | Probe | Cursor | `deepen_history.py --probe-only` not truncated below tier start |
 | 3 | **V1** prices | Cursor | All 14 symbols `n ≥ 1135` (target ≥ 1513); `lo` ≤ 2022-01 / 2020-07 |
 | 4 | **V2** | Cursor | One source; `split_dividend_adjusted`; 0 null adjusted_close |
@@ -41,6 +41,5 @@ After large landings: `/graphify --update`. Outputs: `graphify-out/GRAPH_REPORT.
 `.claude/` remains Claude Code tooling. Cursor mirrors: `.cursor/rules/`, `.cursor/agents/`. Keep guardrails in sync.
 
 ## Current phase
-- **Done:** year-ahead base; Phase 2a quality+momentum pack; max Basic history (501); Phase 2b analysis docs; `.cursor` Phase 2b rules.
-- **Blocked:** V1–V5 (need paid Massive or Tiingo client + SEC backfill).
-- **Next Fable one-shot:** only after go/no-go green.
+- **Done:** year-ahead base; Phase 2a quality+momentum pack; Phase 2b analysis docs; `.cursor` Phase 2b rules; Tiingo client + full re-backfill (N=1511, 2020-07-06→today) + SEC quarterly depth to 2018–2019; V1–V5 all GREEN (see `Docs/HISTORY_DEPTH.md`).
+- **Next Fable one-shot:** go/no-go is green — F1 → F2 → F3 → promotion study may start.
