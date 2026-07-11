@@ -41,6 +41,6 @@ After large landings: `/graphify --update`. Outputs: `graphify-out/GRAPH_REPORT.
 `.claude/` remains Claude Code tooling. Cursor mirrors: `.cursor/rules/`, `.cursor/agents/`. Keep guardrails in sync.
 
 ## Current phase
-- **Done:** year-ahead base; Phase 2a/2b (`demo_eligible` on tiingo); Cursor Phase 3 AI hub prereqs + questionnaire locks.
-- **Next:** paste **`Docs/FABLE5_PHASE3_AI_BRAIN_PROMPT.md`** into Fable 5 (one-shot LLM seam + NVDA smoke). Human opens PR.
+- **Done:** year-ahead base; Phase 2a/2b (`demo_eligible` on tiingo); Cursor Phase 3 AI hub prereqs + questionnaire locks; **Fable Phase 3 LLM seam** (2026-07-12, branch `feat/phase3-llm-seam`): `LiveLLMClient` (litellm.Router Gemini→Groq→Ollama + instructor, sole site `agents/llm_client.py`), evidence-bound analyst/critic prompts, CLI happy path, `scripts/live_ai_card_smoke.py` NVDA smoke.
+- **Next:** human opens/merges the Phase 3 seam PR; V1.1 candidates (StrategySpec proposer, DuckDB `evidence_cards` build #2) stay parked per non-goals.
 - Vault SoT: `Session Findings — AI Brain Hub (2026-07-12)`; full Q&A: `Session Recap — AI Brain Hub Questionnaire (2026-07-12)`.

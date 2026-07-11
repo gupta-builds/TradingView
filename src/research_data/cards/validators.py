@@ -61,6 +61,10 @@ def validate_numeric_allowlist(
                 continue
             if allowlist.allows_float(value, confidence=True):
                 continue
+            # Symmetric with the int branch: "ranks 3." lexes as float 3.0 but
+            # denotes the allowlisted integer 3 followed by a full stop.
+            if value.is_integer() and allowlist.allows_int(int(value)):
+                continue
             raise CardValidationError(
                 f"float token {raw!r} not in numeric allowlist"
             )

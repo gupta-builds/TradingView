@@ -15,6 +15,9 @@ dependencies = [
     "hypothesis>=6.0",
     "pytest>=7.0",
     "exchange_calendars>=4.5",
+    # Phase 3 LLM seam — imported lazily and only inside agents/llm_client.py (C4).
+    "litellm>=1.60",
+    "instructor>=1.7",
 ]
 
 [tool.setuptools.packages.find]

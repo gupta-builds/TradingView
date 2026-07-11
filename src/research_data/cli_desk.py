@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
 import duckdb
 import typer
 
-from research_data.agents.assemble import assemble_symbol_input
+from research_data.agents.assemble import AnalystInputBundle, assemble_symbol_input
 from research_data.agents.runner import RunnerError, run_analyze_symbol, run_critique_spec
 from research_data.brain.citations import (
     add_citation,
@@ -20,6 +20,11 @@ from research_data.brain.citations import (
 from research_data.brain.loop import latest_gate_batch, record_gate_outcome_decision
 from research_data.brain.models import StrategySpec
 from research_data.brain.store import BrainStore, BrainStoreError
+from research_data.config import load_config
+from research_data.evidence import EvidenceConstructionError
+from research_data.factors.engine import HISTORY_CALENDAR_DAYS, FactorEngine
+from research_data.fundamentals.store import FundamentalsStore, to_factor_inputs
+from research_data.read_api import PriceReadAPI
 from research_data.factors.packets import (
     EtfBaselineComparison,
     MomentumScore,
@@ -34,6 +39,85 @@ from research_data.factors.packets import (
 )
 from research_data.models import QualityStatus
 from research_data.paper.store import PaperStore
+
+
+def _load_universe_fundamentals(
+    conn: duckdb.DuckDBPyConnection, equities: list[str]
+) -> dict:
+    """One source per symbol (most snapshots wins, FMP on ties) → FundamentalInputs."""
+    store = FundamentalsStore(conn)
+    inputs = {}
+    for symbol in equities:
+        snapshots = store.get_snapshots(symbol)
+        if not snapshots:
+            continue
+        by_source: dict[str, list] = {}
+        for snapshot in snapshots:
+            by_source.setdefault(snapshot.source, []).append(snapshot)
+        best = max(by_source, key=lambda s: (len(by_source[s]), 1 if s == "fmp" else 0))
+        factor_inputs = to_factor_inputs(symbol, by_source[best])
+        if factor_inputs is not None:
+            inputs[symbol] = factor_inputs
+    return inputs
+
+
+def build_happy_path_bundle(
+    conn: duckdb.DuckDBPyConnection,
+    *,
+    symbol: str,
+    as_of: date,
+    price_source: str | None = None,
+    spec_id: str | None = None,
+    gate_runs: list | None = None,
+    promotion_decision=None,
+) -> AnalystInputBundle:
+    """Real analyst input: FactorEngine ScorePacket + evidence refs from the DB.
+
+    Cross-sectional ranks require scoring the whole configured universe; the
+    target symbol must already be in it (universe expansion is a non-goal).
+    """
+    config = load_config()
+    universe = list(config.universe.symbols)
+    if symbol not in universe:
+        raise RunnerError(
+            f"{symbol} is not in the configured universe; refusing to expand it"
+        )
+    equities = [
+        s for s in universe if config.universe.assets[s].asset_type != "etf"
+    ]
+    price_api = PriceReadAPI(conn)
+    engine = FactorEngine(
+        price_api,
+        benchmark_symbol=config.universe.default_benchmark,
+        price_source=price_source,
+    )
+    fundamentals = _load_universe_fundamentals(conn, equities)
+    packets = engine.compute_packets(universe, as_of, fundamentals)
+    packet = next(p for p in packets if p.symbol == symbol)
+
+    records = price_api.get_price_frame(
+        symbols=[symbol],
+        start=as_of - timedelta(days=HISTORY_CALENDAR_DAYS),
+        end=as_of,
+        source=price_source,
+        require_usable=True,
+    )
+    quality_report = price_api.get_quality_report(symbol, source=price_source)
+    kwargs = dict(
+        score_packet=packet,
+        benchmark_symbol=config.universe.default_benchmark,
+        spec_id=spec_id,
+        gate_runs=gate_runs,
+        promotion_decision=promotion_decision,
+    )
+    if quality_report is not None:
+        try:
+            return assemble_symbol_input(
+                records=records, quality_report=quality_report, **kwargs
+            )
+        except EvidenceConstructionError:
+            pass  # fall through: card ships with empty refs rather than fake ones
+    return assemble_symbol_input(**kwargs)
 
 
 def register_desk_commands(app: typer.Typer, *, default_db: str, project_root: Path) -> None:
@@ -263,9 +347,17 @@ def register_desk_commands(app: typer.Typer, *, default_db: str, project_root: P
         vault_mirror: Optional[str] = typer.Option(
             None, "--vault-mirror", help="Optional one-way markdown export path"
         ),
+        price_source: Optional[str] = typer.Option(
+            None,
+            "--price-source",
+            help="Filter daily_ohlcv to one source (required when the DB is mixed-source)",
+        ),
+        spec_id: Optional[str] = typer.Option(
+            None, "--spec-id", help="Attach spec provenance + latest gate batch"
+        ),
         db_path: str = typer.Option(default_db, "--db-path"),
     ) -> None:
-        """Assemble packets and write an EvidenceCard (INSUFFICIENT_DATA path is live)."""
+        """Assemble packets and write an EvidenceCard (blocked + happy paths)."""
         symbol = symbol.upper()
         as_of_date = date.fromisoformat(as_of) if as_of else date.today()
         conn = _open(db_path)
@@ -273,17 +365,25 @@ def register_desk_commands(app: typer.Typer, *, default_db: str, project_root: P
             if quality is not None:
                 status = QualityStatus(quality.lower())
                 packet = _minimal_blocked_packet(symbol, as_of_date, status)
+                bundle = assemble_symbol_input(score_packet=packet)
             else:
-                # Happy path needs FactorEngine + Fable LLM — report clearly.
-                typer.echo(
-                    "Happy-path analyze requires Fable LLM client. "
-                    "Use --quality missing|contradictory for the deterministic "
-                    "INSUFFICIENT_DATA path, or preload RESEARCH_DATA_LLM=fixture.",
-                    err=True,
-                )
-                raise typer.Exit(code=2)
-
-            bundle = assemble_symbol_input(score_packet=packet)
+                gate_runs = None
+                if spec_id is not None:
+                    store = _brain(conn)
+                    store.get_spec(spec_id)
+                    gate_runs = latest_gate_batch(store, spec_id)
+                try:
+                    bundle = build_happy_path_bundle(
+                        conn,
+                        symbol=symbol,
+                        as_of=as_of_date,
+                        price_source=price_source,
+                        spec_id=spec_id,
+                        gate_runs=gate_runs,
+                    )
+                except (RunnerError, StopIteration) as e:
+                    typer.echo(str(e) or "no ScorePacket produced", err=True)
+                    raise typer.Exit(code=1) from e
             try:
                 card = run_analyze_symbol(
                     bundle,
