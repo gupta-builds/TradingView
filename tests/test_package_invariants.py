@@ -25,6 +25,8 @@ REQUIRED_MODULES = (
     "research_data.fundamentals",
     "research_data.gates",
     "research_data.paper",
+    "research_data.strategies",
+    "research_data.strategies.quality_momentum",
     "research_data.kronos_reserved",
     "research_data.providers.polygon",
     "research_data.providers.csv_fixture",
@@ -33,6 +35,8 @@ REQUIRED_MODULES = (
 REQUIRED_PATHS = (
     "Docs/YEAR_AHEAD_BASE.md",
     "Docs/GITHUB_WORKFLOW.md",
+    "Docs/PHASE2_STRATEGY_PACK.md",
+    "scripts/run_quality_momentum_study.py",
     ".github/workflows/ci.yml",
     "config/assets.toml",
     "config/providers.toml",

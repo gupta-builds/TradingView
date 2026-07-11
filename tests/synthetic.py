@@ -12,6 +12,7 @@ import math
 import random
 from datetime import date, datetime, time, timedelta, timezone
 
+from research_data.fundamentals.models import FundamentalsSnapshot
 from research_data.models import OHLCVRecord, PriceAdjustment, QualityStatus
 
 SYNTHETIC_SOURCE = "synthetic_fixture"
@@ -82,6 +83,58 @@ def make_price_records(
             )
         )
     return records
+
+
+def make_fundamentals_snapshots(
+    symbol: str,
+    *,
+    end: date,
+    quarters: int = 24,
+    quarterly_revenue: float = 25_000_000_000.0,
+    operating_margin: float = 0.25,
+    fcf_margin: float = 0.20,
+    total_debt: float = 20_000_000_000.0,
+    cash_and_equivalents: float = 30_000_000_000.0,
+    total_equity: float = 80_000_000_000.0,
+    shares_outstanding: float = 1_000_000_000.0,
+    omit_cash_flows: bool = False,
+    omit_balance_sheet: bool = False,
+    omit_operating_income: bool = False,
+) -> list[FundamentalsSnapshot]:
+    """Deterministic quarterly statement fixtures (source clearly synthetic).
+
+    Constant per-quarter values so cross-sectional quality differences come
+    only from the levels a test chooses. ``omit_*`` flags produce symbols with
+    missing sub-signals for INSUFFICIENT_DATA-path tests.
+    """
+    retrieved_at = datetime.combine(end, time(23, 0), tzinfo=timezone.utc)
+    payload_hash = hashlib.sha256(f"fundamentals:{symbol}:{quarters}".encode()).hexdigest()
+    capex = 0.05 * quarterly_revenue
+    snapshots: list[FundamentalsSnapshot] = []
+    for k in range(quarters, 0, -1):
+        snapshots.append(
+            FundamentalsSnapshot(
+                symbol=symbol,
+                source=SYNTHETIC_SOURCE,
+                period_type="quarter",
+                fiscal_period_end=end - timedelta(days=91 * k),
+                retrieved_at=retrieved_at,
+                raw_payload_hash=payload_hash,
+                revenue=quarterly_revenue,
+                operating_income=(
+                    None if omit_operating_income else operating_margin * quarterly_revenue
+                ),
+                operating_cash_flow=(
+                    None if omit_cash_flows else fcf_margin * quarterly_revenue + capex
+                ),
+                capex=None if omit_cash_flows else capex,
+                total_debt=None if omit_balance_sheet else total_debt,
+                cash_and_equivalents=None if omit_balance_sheet else cash_and_equivalents,
+                total_equity=None if omit_balance_sheet else total_equity,
+                shares_outstanding=None if omit_balance_sheet else shares_outstanding,
+            )
+        )
+    return snapshots
 
 
 def daily_returns(records: list[OHLCVRecord]) -> list[float]:

@@ -55,7 +55,7 @@ def make_spec(citation_ids: list[str] | None = None, **overrides) -> StrategySpe
         citation_ids=citation_ids or [],
         factor_dependencies=["momentum"],
         params={"lookback_days": 252, "skip_days": 21},
-        hook_ref="research_data.factors.momentum:momentum_strategy_hook",
+        hook_ref="research_data.strategies.quality_momentum:quality_momentum_tilt_hook",
     )
     defaults.update(overrides)
     return StrategySpec(**defaults)

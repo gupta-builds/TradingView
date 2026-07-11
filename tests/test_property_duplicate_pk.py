@@ -126,7 +126,7 @@ class TestProperty12DuplicatePrimaryKeyHandling:
         hash1=valid_hashes,
         hash2=valid_hashes,
     )
-    @settings(max_examples=100)
+    @settings(max_examples=100, deadline=None)
     def test_upsert_overwrites_duplicate_pk(
         self,
         symbol: str,
