@@ -348,9 +348,9 @@ def register_desk_commands(app: typer.Typer, *, default_db: str, project_root: P
             None, "--vault-mirror", help="Optional one-way markdown export path"
         ),
         price_source: Optional[str] = typer.Option(
-            None,
+            "tiingo",
             "--price-source",
-            help="Filter daily_ohlcv to one source (required when the DB is mixed-source)",
+            help="Filter daily_ohlcv to one source (default tiingo; required when DB is mixed)",
         ),
         spec_id: Optional[str] = typer.Option(
             None, "--spec-id", help="Attach spec provenance + latest gate batch"
@@ -404,32 +404,74 @@ def register_desk_commands(app: typer.Typer, *, default_db: str, project_root: P
     def critique_spec_cmd(
         spec_id: str = typer.Argument(...),
         symbol: str = typer.Option("NVDA", "--symbol"),
-        quality: Optional[str] = typer.Option(None, "--quality"),
+        as_of: Optional[str] = typer.Option(None, "--as-of"),
+        quality: Optional[str] = typer.Option(
+            None,
+            "--quality",
+            help="Force quality status for blocked-path tests (missing|contradictory)",
+        ),
         cards_dir: str = typer.Option(
             str(project_root / "data" / "cards"), "--cards-dir"
         ),
+        vault_mirror: Optional[str] = typer.Option(
+            None, "--vault-mirror", help="Optional one-way markdown export of the paired card"
+        ),
+        price_source: Optional[str] = typer.Option(
+            "tiingo",
+            "--price-source",
+            help="Filter daily_ohlcv to one source (default tiingo)",
+        ),
         db_path: str = typer.Option(default_db, "--db-path"),
     ) -> None:
-        """Write a CriticReview for a spec (blocked path live; happy path = Fable)."""
+        """Write a CriticReview for a spec (blocked + FactorEngine happy paths)."""
+        symbol = symbol.upper()
+        as_of_date = date.fromisoformat(as_of) if as_of else date.today()
         conn = _open(db_path)
         try:
             store = _brain(conn)
             store.get_spec(spec_id)
             runs = latest_gate_batch(store, spec_id)
-            as_of_date = date.today()
-            status = (
-                QualityStatus(quality.lower())
-                if quality
-                else QualityStatus.USABLE
-            )
-            packet = _minimal_blocked_packet(symbol.upper(), as_of_date, status)
-            bundle = assemble_symbol_input(
-                score_packet=packet,
-                spec_id=spec_id,
-                gate_runs=runs,
-            )
+            decisions = store.list_decisions(spec_id)
+            decision = decisions[-1] if decisions else None
+            card = None
+            if quality is not None:
+                status = QualityStatus(quality.lower())
+                packet = _minimal_blocked_packet(symbol, as_of_date, status)
+                bundle = assemble_symbol_input(
+                    score_packet=packet,
+                    spec_id=spec_id,
+                    gate_runs=runs,
+                    promotion_decision=decision,
+                )
+            else:
+                try:
+                    bundle = build_happy_path_bundle(
+                        conn,
+                        symbol=symbol,
+                        as_of=as_of_date,
+                        price_source=price_source,
+                        spec_id=spec_id,
+                        gate_runs=runs,
+                        promotion_decision=decision,
+                    )
+                except (RunnerError, StopIteration) as e:
+                    typer.echo(str(e) or "no ScorePacket produced", err=True)
+                    raise typer.Exit(code=1) from e
+                # Pair critic with a fresh analyst card when live/fixture can produce one.
+                try:
+                    card = run_analyze_symbol(
+                        bundle,
+                        cards_dir=cards_dir,
+                        vault_mirror_path=vault_mirror,
+                    )
+                    typer.echo(
+                        f"card_id={card.card_id} action={card.action.value} "
+                        f"confidence={card.confidence}"
+                    )
+                except RunnerError as e:
+                    typer.echo(f"WARNING: paired card skipped: {e}", err=True)
             try:
-                review = run_critique_spec(bundle, cards_dir=cards_dir)
+                review = run_critique_spec(bundle, card, cards_dir=cards_dir)
             except RunnerError as e:
                 typer.echo(str(e), err=True)
                 raise typer.Exit(code=1) from e

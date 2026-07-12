@@ -61,8 +61,8 @@ src/research_data/
     loop.py            #   Loop rules: legal state transitions, gate-order enforcement, eligibility
     citations.py       #   Deterministic cite-add / vault / journal_lesson ingest (no LLM)
   cards/               # EvidenceCard + CriticReview (no LLM); allowlist + gate projection + validators
-  agents/              # AI harness boundary only — llm_client (fixture; Fable adds provider SDK),
-                       # assemble, runner, analyst/critic prompt modules
+  agents/              # AI harness boundary — llm_client (litellm.Router + instructor live;
+                       # fixture default for CI), assemble, runner, analyst/critic prompts
   factors/             # deterministic scorers → structured score packets
     packets.py         #   ScorePacket + sub-score models (formula, inputs, as_of on every score)
     momentum.py        #   12-1 month total-return rank in universe

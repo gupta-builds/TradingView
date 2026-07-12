@@ -1,7 +1,7 @@
 """AI harness package — LLM provider stack only lives here (C4).
 
-``llm_client.py`` is the sole future provider-SDK import site. Cursor prereq ships
-fixture mode + NotImplemented live path; Fable fills Router + structured bind.
+``llm_client.py`` is the sole provider-SDK import site. Fixture mode is the CI
+default; live mode uses ``LiveLLMClient`` (Router + structured JSON bind).
 """
 
 from research_data.agents.assemble import (

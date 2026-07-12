@@ -29,6 +29,12 @@ def main() -> int:
     parser.add_argument("--spec-id", default=DEFAULT_SPEC_ID)
     parser.add_argument("--price-source", default="tiingo")
     parser.add_argument("--cards-dir", default=str(PROJECT_ROOT / "data" / "cards"))
+    parser.add_argument(
+        "--vault-mirror",
+        default=None,
+        help="Optional path for one-way DB→markdown mirror of the live card "
+        "(default: data/cards/NVDA_live_mirror.md under --cards-dir)",
+    )
     args = parser.parse_args()
 
     from research_data.cli import load_dotenv_if_present
@@ -95,8 +101,15 @@ def main() -> int:
 
         # 1) Live analyst card — validators (allowlist, cap, refs, tokens) run inside.
         card = None
+        mirror_path = args.vault_mirror
+        if mirror_path is None:
+            mirror_path = str(Path(args.cards_dir) / f"{symbol}_live_mirror.md")
         try:
-            card = run_analyze_symbol(bundle, cards_dir=args.cards_dir)
+            card = run_analyze_symbol(
+                bundle,
+                cards_dir=args.cards_dir,
+                vault_mirror_path=mirror_path,
+            )
             assert isinstance(card.action, ActionLabel)
             if round(card.confidence, 2) > round(card.max_confidence, 2):
                 raise CardValidationError("card confidence exceeds cap")
@@ -104,6 +117,7 @@ def main() -> int:
                 f"PASS: live EvidenceCard ({symbol} action={card.action.value} "
                 f"card_id={card.card_id})"
             )
+            print(f"PASS: vault mirror written ({mirror_path})")
         except (CardValidationError, RunnerError, LLMClientError) as e:
             failures.append(f"analyst card: {e}")
             print(f"FAIL: analyst card: {e}")

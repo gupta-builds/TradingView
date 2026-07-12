@@ -169,3 +169,7 @@ Short lessons only: corrections + confirmed approaches. Read at each work block.
 - Instructor + litellm.Router: `instructor.from_litellm(router.completion, mode=Mode.JSON)` works
   as-is; keep both imports lazy inside `LiveLLMClient.__init__` so fixture-mode CI never pays the
   litellm import cost (and C4 grep stays trivially true).
+- Mixed-source DuckDB (polygon + tiingo): desk CLI and smoke must default `--price-source tiingo`.
+  Unfiltered `get_price_frame` duplicates calendar dates and corrupts FactorEngine scores.
+- Post-Fable Cursor polish: wire `critique-spec` through `build_happy_path_bundle` (not synthetic
+  packets); smoke writes vault mirror by default under `data/cards/{SYMBOL}_live_mirror.md`.

@@ -15,10 +15,10 @@ src/research_data/
     writer.py            # data/cards/*.json + one-way vault markdown
     store.py             # RESERVED empty — DuckDB build #2 later
   agents/                # sole LLM boundary (C4)
-    llm_client.py        # fixture now; Fable: litellm.Router only here
+    llm_client.py        # FixtureLLMClient (CI) + LiveLLMClient (litellm.Router + instructor)
     assemble.py          # ScorePacket numbers + evidence_refs only
     runner.py            # assemble → validate → write; block LLM on MISSING/CONTRADICTORY
-    analyst.py / critic.py  # prompt placeholders → Fable
+    analyst.py / critic.py  # evidence-bound prompts (landed 2026-07-12)
   brain/citations.py     # cite-add / vault / journal (deterministic)
   cli_desk.py            # Typer: propose/approve/reject/decide/cite-*/analyze/critique
   paper/                 # Thesis.source_card_id; PaperEngine.on_lesson_journaled
@@ -29,7 +29,7 @@ src/research_data/
 ```text
 ScorePacket (+ evidence_refs from DataEvidencePacket)
   → assemble (block LLM if MISSING|CONTRADICTORY → deterministic INSUFFICIENT_DATA card)
-  → [Fable] structured LLM → EvidenceCard
+  → structured LLM (LiveLLMClient / FixtureLLMClient) → EvidenceCard
   → NumericAllowlist + confidence clamp validators
   → data/cards/{symbol}_{as_of}_{card_id}.json
   → optional one-way vault markdown (DB wins)
@@ -70,8 +70,9 @@ Gate batch → GateSummaryProjection (oos_net_sharpe, mc_p5_return,
 
 ## Eval
 
-- Offline: Properties 20–22 (+ structural C4/D3 tests); zero LLM on blocked quality
-- Live: `scripts/live_ai_card_smoke.py` (Fable) — NVDA; not default pytest
+- Offline: Properties 20–23 + `tests/test_ai_hub_llm_seam.py`; zero LLM on blocked quality
+- Live: `scripts/live_ai_card_smoke.py` — NVDA; vault mirror; planted false Sharpe; not default pytest
+- Status: LLM seam landed on `feat/phase3-llm-seam` (2026-07-12)
 
 ## Non-goals
 
