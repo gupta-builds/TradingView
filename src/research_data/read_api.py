@@ -170,7 +170,7 @@ class PriceReadAPI:
             issues = {}
 
         return DataQualityReport(
-            report_id=row[0],
+            report_id=str(row[0]),  # DuckDB returns UUID objects for UUID columns
             run_id=str(row[1]),
             symbol=row[2],
             source_name=row[3],

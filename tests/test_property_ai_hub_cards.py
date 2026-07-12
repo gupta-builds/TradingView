@@ -127,6 +127,34 @@ def test_property_22_citation_hallucination_rejected() -> None:
         validate_evidence_card(card, allowlist, allowed_ref_keys=set())
 
 
+@given(st.floats(min_value=-2.0, max_value=2.0, allow_nan=False, allow_infinity=False))
+@settings(max_examples=25)
+def test_property_23_runner_accepts_display_precision_quotes(raw: float) -> None:
+    """Property 23: a card quoting any packet float at display precision (4dp)
+    always survives the full runner validate path, end to end."""
+    import tempfile
+
+    from research_data.agents.runner import run_analyze_symbol
+    from research_data.cards.writer import format_card_float
+
+    packet = _packet(ret=raw)
+    card = EvidenceCard(
+        symbol="NVDA",
+        as_of=date(2026, 7, 10),
+        action=ActionLabel.WATCH,
+        confidence=0.5,
+        summary=f"Twelve-minus-one return of {format_card_float(raw)} leads the pack.",
+        data_quality_status=QualityStatus.USABLE,
+        max_confidence=1.0,
+    )
+    bundle = assemble_symbol_input(score_packet=packet)
+    client = FixtureLLMClient(canned={EvidenceCard: card})
+    with tempfile.TemporaryDirectory() as tmp:
+        out = run_analyze_symbol(bundle, cards_dir=tmp, llm_client=client)
+    assert client.invocation_count == 1
+    assert out.confidence <= out.max_confidence
+
+
 def test_int_bucket_exact() -> None:
     al = NumericAllowlist()
     al.add_int(9)

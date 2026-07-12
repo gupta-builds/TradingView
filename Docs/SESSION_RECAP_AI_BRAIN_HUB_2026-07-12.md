@@ -15,7 +15,7 @@ tags:
 track:
   - trading
   - ai
-next: "Paste Docs/FABLE5_PHASE3_AI_BRAIN_PROMPT.md into Fable 5; human opens PR after green branch"
+next: "Human opens PR for feat/phase3-llm-seam; V1.1 proposer / DuckDB evidence_cards stay parked"
 ---
 
 # Session Recap — AI Brain Hub Design → Cursor Prereqs → Fable Prompt (2026-07-12)
@@ -25,6 +25,8 @@ next: "Paste Docs/FABLE5_PHASE3_AI_BRAIN_PROMPT.md into Fable 5; human opens PR 
 ## What this session was
 
 Cursor (Ask → Agent) ran a **design questionnaire** then **implemented Cursor-owned prereqs** for the personal US stocks/ETFs research desk (`research_data` in `tradingview/`). Goal: unlock a **one-shot Fable 5** build of the LLM analyst/critic seam on top of `quality_momentum_tilt_top3` (**demo_eligible**, tiingo N=1511, PR #3).
+
+**Status 2026-07-12 (post-Fable):** G2 DoD met on `feat/phase3-llm-seam` (`25d5be8` + Cursor polish). Offline **497** tests; live NVDA smoke PASS. Human opens PR (policy i).
 
 Verified on machine before prompt rewrite:
 - `pytest -q` → **483 passed** (~7 min)
@@ -114,7 +116,9 @@ User clarified early: fuller vision (self-improving brain + sibling PM app + pol
 
 ## Fable owns (do not do in Cursor)
 
-`litellm.Router` + instructor/pydantic-ai in `llm_client.py` only; real prompts; FactorEngine happy-path analyze; `scripts/live_ai_card_smoke.py`; leave green branch for human PR.
+~~`litellm.Router` + instructor/pydantic-ai in `llm_client.py` only; real prompts; FactorEngine happy-path analyze; `scripts/live_ai_card_smoke.py`; leave green branch for human PR.~~
+
+**Done (2026-07-12):** landed on `feat/phase3-llm-seam`. Remaining human step: open/merge PR. V1.1 (proposer, DuckDB `evidence_cards`) stays parked.
 
 ## Anti-patterns rejected this session
 

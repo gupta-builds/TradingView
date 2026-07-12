@@ -5,12 +5,13 @@ Personal AI market research desk (`research_data`). Not a broker, not TradingVie
 
 ## Read first (in order)
 1. `Docs/YEAR_AHEAD_BASE.md` — architecture contract
-2. `Docs/PHASE2_STRATEGY_PACK.md` — production strategy pack (Phase 2a)
-3. `Docs/PHASE2B_PROBLEM_STATEMENT.md` + `Docs/PHASE2B_SOLUTION_DESIGN.md` — Phase 2b SoT
-4. `Docs/HISTORY_DEPTH.md` — Cursor deepen ops
-5. `Docs/GITHUB_WORKFLOW.md` — branch/PR/CI
-6. `Docs/fable5_run_memory.md` — short lessons
-7. Vault (jarvis): `Session Findings — Post Base (2026-07-11)`
+2. `Docs/PHASE3_AI_BRAIN_SOLUTION_DESIGN.md` + `Docs/PHASE3_AI_BRAIN_RUNBOOK.md` — AI hub SoT
+3. `Docs/PHASE2_STRATEGY_PACK.md` — production strategy pack (Phase 2a)
+4. `Docs/PHASE2B_PROBLEM_STATEMENT.md` + `Docs/PHASE2B_SOLUTION_DESIGN.md` — Phase 2b SoT
+5. `Docs/HISTORY_DEPTH.md` — Cursor deepen ops
+6. `Docs/GITHUB_WORKFLOW.md` — branch/PR/CI
+7. `Docs/fable5_run_memory.md` — short lessons
+8. Vault (jarvis): `Session Findings — AI Brain Hub (2026-07-12)`
 
 ## Phase 2b go/no-go (one page)
 
@@ -41,6 +42,6 @@ After large landings: `/graphify --update`. Outputs: `graphify-out/GRAPH_REPORT.
 `.claude/` remains Claude Code tooling. Cursor mirrors: `.cursor/rules/`, `.cursor/agents/`. Keep guardrails in sync.
 
 ## Current phase
-- **Done:** year-ahead base; Phase 2a/2b (`demo_eligible` on tiingo); Cursor Phase 3 AI hub prereqs + questionnaire locks.
-- **Next:** paste **`Docs/FABLE5_PHASE3_AI_BRAIN_PROMPT.md`** into Fable 5 (one-shot LLM seam + NVDA smoke). Human opens PR.
+- **Done:** year-ahead base; Phase 2a/2b (`demo_eligible` on tiingo); Cursor Phase 3 AI hub prereqs + questionnaire locks; **Fable Phase 3 LLM seam** (2026-07-12, branch `feat/phase3-llm-seam`): `LiveLLMClient` (litellm.Router Gemini→Groq→Ollama + instructor, sole site `agents/llm_client.py`), evidence-bound analyst/critic prompts, CLI happy path, `scripts/live_ai_card_smoke.py` NVDA smoke; Cursor polish (`critique-spec` FactorEngine path, smoke vault mirror, tiingo CLI default).
+- **Next:** human opens/merges the Phase 3 seam PR; V1.1 candidates (StrategySpec proposer, DuckDB `evidence_cards` build #2) stay parked per non-goals. No Phase 3b required for V1 locks.
 - Vault SoT: `Session Findings — AI Brain Hub (2026-07-12)`; full Q&A: `Session Recap — AI Brain Hub Questionnaire (2026-07-12)`.

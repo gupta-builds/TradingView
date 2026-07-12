@@ -151,3 +151,25 @@ Short lessons only: corrections + confirmed approaches. Read at each work block.
   Decision recorded: promote → demo_eligible. One bull-heavy regime — evidence, not proof.
 - Holdings dump: `entry_type` on JournalEntry is a free string, so a new `"holdings"` entry type needed
   zero model/store changes — smallest-diff wins.
+
+## Phase 3 LLM seam (2026-07-12)
+
+- `gemini/gemini-2.0-flash` was retired 2026-06-01; current litellm alias is `gemini/gemini-3.5-flash`.
+  `.env` / `.env.example` lag reality — confirm the alias at implement time, every time.
+- Gemini 3.x Flash is a reasoning model: "thinking" tokens spend the same `max_tokens` completion
+  budget, so 2048 truncated instructor's JSON mid-object. Fix: `max_tokens=8192` +
+  `reasoning_effort="low"` (with `litellm.drop_params=True` so Groq/Ollama fallbacks don't 400).
+- Latent bug only a first caller finds: DuckDB UUID columns come back as `uuid.UUID` objects and
+  fail pydantic `str` fields — `read_api.get_quality_report` needed `str(row[0])` despite the
+  table existing since Month 1. Storage round-trip tests used in-memory inserts, not UUID casts.
+- Numeric-allowlist prose discipline: models leak digits through indicator names ("the RSI 14.")
+  and dates even when told to quote only listed numbers. Ban digits in prose wholesale, name the
+  indicator-digit trap explicitly in the system prompt, and give the runner ONE corrective retry
+  that feeds the exact validator error back — that combination went from 1/2 to green live runs.
+- Instructor + litellm.Router: `instructor.from_litellm(router.completion, mode=Mode.JSON)` works
+  as-is; keep both imports lazy inside `LiveLLMClient.__init__` so fixture-mode CI never pays the
+  litellm import cost (and C4 grep stays trivially true).
+- Mixed-source DuckDB (polygon + tiingo): desk CLI and smoke must default `--price-source tiingo`.
+  Unfiltered `get_price_frame` duplicates calendar dates and corrupts FactorEngine scores.
+- Post-Fable Cursor polish: wire `critique-spec` through `build_happy_path_bundle` (not synthetic
+  packets); smoke writes vault mirror by default under `data/cards/{SYMBOL}_live_mirror.md`.

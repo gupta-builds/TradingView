@@ -32,8 +32,7 @@ def test_llm_imports_only_under_agents() -> None:
         if _LLM_IMPORT_RE.search(text):
             if rel.parts[0] != "agents":
                 offenders.append(str(rel))
-            # litellm itself may only appear in llm_client.py once Fable lands;
-            # Cursor prereq must not import litellm anywhere yet.
+            # litellm itself may only appear in llm_client.py (lazy live import).
             if "litellm" in text.lower() and path.name != "llm_client.py":
                 offenders.append(f"{rel}: litellm outside llm_client.py")
     assert offenders == []
