@@ -57,7 +57,7 @@ See solution design §Non-goals and `Docs/NORTH_STAR_DESK.md`. Summarized:
 |---|---|---|
 | **Cursor prereqs** | Schemas, assemblers, validators, citation CLI, brain Typer, D5 callback, Properties, Docs, fixture LLM stub | Landed `8c0cf9a` on main |
 | **Fable LLM seam** | Real prompts, `litellm.Router` + instructor, happy-path runner, E2 NVDA live smoke, vault mirror | Landed `25d5be8` on `feat/phase3-llm-seam` |
-| **Cursor polish** | `critique-spec` FactorEngine path, smoke vault mirror default, tiingo CLI default, docs sync | This branch (post-Fable) |
+| **Cursor polish** | `critique-spec` FactorEngine path, smoke vault mirror default, tiingo CLI default, docs sync | Landed `2a51dc6` on `feat/phase3-llm-seam` |
 
 ## Merge policy
 
